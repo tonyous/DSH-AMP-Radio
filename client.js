@@ -106,6 +106,8 @@ window.__ModuleLoader__.load({
       @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(calc(-100% + 120px));}}
       .dsh-radio-pill-loading{color:var(--dsw-alias-label-tertiary,#8a8a8a);animation:dsh-radio-pulse 1.2s ease-in-out infinite;}
       @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+      .dsh-radio-sleep{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 4px;cursor:pointer;}
+      .dsh-radio-sleep:focus{outline:none;border-color:var(--dsw-alias-interactive-primary,#4c8dff);}
     `;
 
     function AmpLogo(props) {
@@ -190,6 +192,7 @@ window.__ModuleLoader__.load({
       const [playing, setPlaying] = React.useState(false);
       const [loading, setLoading] = React.useState(false);
       const [error, setError] = React.useState(null);
+      const [sleepTimer, setSleepTimer] = React.useState(null); // seconds remaining, or null
       const [volume, setVolume] = React.useState(() => {
         try { const v = localStorage.getItem('dsh-radio-volume'); return v !== null ? Number(v) : 0.8; } catch { return 0.8; }
       });
@@ -278,6 +281,28 @@ window.__ModuleLoader__.load({
         });
         return () => cancelAnimationFrame(raf);
       }, [label]);
+
+      // Sleep timer countdown.
+      React.useEffect(() => {
+        if (sleepTimer === null || sleepTimer <= 0) return undefined;
+        const id = setInterval(() => {
+          setSleepTimer(prev => {
+            if (prev === null) return null;
+            if (prev <= 1) {
+              // Timer expired — pause audio.
+              const a = audioRef.current;
+              if (a) { a.pause(); setPlaying(false); }
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(id);
+      }, [sleepTimer !== null]);
+
+      function setSleep(minutes) {
+        setSleepTimer(minutes * 60);
+      }
 
       // Close on outside click or Escape key.
       React.useEffect(() => {
@@ -602,6 +627,22 @@ window.__ModuleLoader__.load({
             ),
             h('button', {type: 'button', className: 'dsh-radio-btn', disabled: !current, onClick: stop, 'aria-label': 'Stop'},
               h('svg', {viewBox: '0 0 24 24', width: 16, height: 16, fill: 'currentColor', 'aria-hidden': true}, h('rect', {x: 6, y: 6, width: 12, height: 12, rx: 2}))
+            ),
+            h('select', {
+              className: 'dsh-radio-sleep',
+              'aria-label': 'Sleep timer',
+              value: sleepTimer !== null ? 'active' : '',
+              onChange: e => {
+                const v = e.target.value;
+                if (v === '') setSleepTimer(null);
+                else setSleepTimer(Number(v));
+              },
+            },
+              h('option', {value: ''}, 'Sleep: Off'),
+              h('option', {value: '300'}, '5 min'),
+              h('option', {value: '900'}, '15 min'),
+              h('option', {value: '1800'}, '30 min'),
+              h('option', {value: '3600'}, '1 hour')
             )
           ),
           h('div', {className: 'dsh-radio-volume'},
