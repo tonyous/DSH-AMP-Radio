@@ -212,6 +212,14 @@ window.__ModuleLoader__.load({
       });
       const [updateState, setUpdateState] = React.useState('idle'); // idle | checking | available | up-to-date
 
+      // Derived values (must be declared before any useEffect that references them).
+      const label = current ? current.name : '';
+      const statusText = loading ? 'Loading…' : playing ? 'Playing' : current ? 'Paused' : 'Off';
+      const showSearch = query.trim().length > 0;
+      const list = showSearch
+        ? (searching && !results ? [] : (results || []))
+        : [...favs.values(), ...STATIONS.filter(s => !favs.has(s.id))].filter(s => s && s.id);
+
       async function checkForUpdates() {
         setUpdateState('checking');
         try {
@@ -268,6 +276,69 @@ window.__ModuleLoader__.load({
         if (a) a.volume = volume;
         try { localStorage.setItem('dsh-radio-volume', String(volume)); } catch {}
       }, [volume]);
+
+      // ── Volume ducking: lower while typing, restore on Enter ──
+      const [ducking, setDucking] = React.useState(false);
+      const duckingRef = React.useRef(false);
+      const originalVolRef = React.useRef(null);
+      const volumeRef = React.useRef(volume);
+      React.useEffect(() => { volumeRef.current = volume; }, [volume]);
+
+      React.useEffect(() => {
+        const isComposer = (el) => {
+          if (!el) return false;
+          const t = el.tagName;
+          if (t === 'TEXTAREA') return true;
+          if (t === 'INPUT') {
+            const type = (el.type || 'text').toLowerCase();
+            return type === 'text' || type === 'search' || type === '';
+          }
+          if (el.isContentEditable) return true;
+          return false;
+        };
+        const onInput = (e) => {
+          if (isComposer(e.target) && !duckingRef.current) {
+            originalVolRef.current = volumeRef.current;
+            duckingRef.current = true;
+            setDucking(true);
+          }
+        };
+        const onKeyDown = (e) => {
+          if (e.key === 'Enter' && duckingRef.current) {
+            duckingRef.current = false;
+            setDucking(false);
+          }
+        };
+        document.addEventListener('input', onInput, true);
+        document.addEventListener('keydown', onKeyDown, true);
+        return () => {
+          document.removeEventListener('input', onInput, true);
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, []);
+
+      // Gradually duck volume down (floor at 15%).
+      React.useEffect(() => {
+        if (!ducking) return undefined;
+        const id = setInterval(() => {
+          setVolume(v => Math.max(0.15, v - 0.025));
+        }, 60);
+        return () => clearInterval(id);
+      }, [ducking]);
+
+      // Gradually restore volume to original.
+      React.useEffect(() => {
+        if (ducking) return undefined;
+        const target = originalVolRef.current;
+        if (target === null) return undefined;
+        const id = setInterval(() => {
+          setVolume(v => {
+            if (v >= target) { originalVolRef.current = null; return target; }
+            return Math.min(target, v + 0.025);
+          });
+        }, 60);
+        return () => clearInterval(id);
+      }, [ducking]);
 
       // Only scroll the pill label if the text actually overflows.
       React.useEffect(() => {
@@ -554,13 +625,6 @@ window.__ModuleLoader__.load({
           return next;
         });
       }
-
-      const label = current ? current.name : '';
-      const statusText = loading ? 'Loading…' : playing ? 'Playing' : current ? 'Paused' : 'Off';
-      const showSearch = query.trim().length > 0;
-      const list = showSearch
-        ? (searching && !results ? [] : (results || []))
-        : [...favs.values(), ...STATIONS.filter(s => !favs.has(s.id))].filter(s => s && s.id);
 
       return h(React.Fragment, null,
         h('button', {
