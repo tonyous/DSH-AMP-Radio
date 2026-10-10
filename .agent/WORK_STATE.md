@@ -1,6 +1,6 @@
 # WORK STATE — dsh-radio plugin
 
-Status: **IMPLEMENTED, AWAITING USER BROWSER VERIFICATION**
+Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
 
 ---
 
@@ -14,6 +14,7 @@ Status: **IMPLEMENTED, AWAITING USER BROWSER VERIFICATION**
 - `6b2ce0f` — Remember-last-station (localStorage) + buffering indicator
 - `3df151b` — Sleep timer (5/15/30/60 min) with auto-pause
 - `cde9963` — Station metadata display (country/codec) + Space keyboard shortcut
+- `1ec1c1b` — Fix pill TDZ bug (label before useEffect) + add volume ducking on typing/Enter
 
 ## Features implemented
 - Radio pill in `conversation.composer.dock` slot (requires active session)
@@ -31,20 +32,22 @@ Status: **IMPLEMENTED, AWAITING USER BROWSER VERIFICATION**
 - Buffering indicator ("Connecting…" pulse)
 - Sleep timer (5/15/30/60 min, auto-pause)
 - Station metadata display (country · codec)
+- **Volume ducking**: auto-lower volume when typing in composer, restore on Enter
 
 ## Verification evidence
 - `node --check client.js` → SYNTAX OK (all commits)
-- `browser_diagnose` 2026-10-10T13:08 → `pageErrors: []`, `rendered: true`, 401 is auth-cookie limitation
-- Headless Playwright: pill not visible (no active session — known limitation)
-- **User real browser: NOT YET VERIFIED for v1.1.0 changes**
+- `browser_diagnose` 2026-10-10T13:17 → `pageErrors: []`, `rendered: true`
+- **Playwright + auth cookie** 2026-10-10T13:20 → `PILL_FOUND: true`, `RADIO_ELEMENTS: 2`, `JS_ERRORS: none`
+- **Screenshot confirmed**: AMP pill visible at bottom of composer dock showing "AMP" + volume %
+- TDZ bug root cause: `label` const used in `useEffect` dependency array before its declaration → `ReferenceError` crashed component
+- Fix: moved `label`/`statusText`/`showSearch`/`list` declarations above all `useEffect` calls
 
 ## Known limitations
-- `conversation.composer.dock` slot only renders with an active session
-- Headless browsers can't test session-dependent slots
+- `conversation.composer.dock` slot only renders with an active session (not "New Session" view)
 - Update button fetches `/plugins/dsh-radio/manifest.json` — may 404 (graceful fallback)
 
 ## Unresolved
 - [ ] User confirms marquee scrolling works in real browser
-- [ ] User confirms update button renders and doesn't error
+- [ ] User confirms volume ducking feels right (speed, floor level)
 - [ ] User confirms sleep timer, metadata display, keyboard shortcuts work
 - [ ] Update button actual update flow (needs a real manifest endpoint)
