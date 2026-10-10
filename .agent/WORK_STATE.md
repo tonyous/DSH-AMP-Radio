@@ -77,3 +77,31 @@ Status: **IMPLEMENTED + VERIFIED (Playwright 17/17 assertions), AWAITING USER CO
 ## Unresolved
 - [ ] User confirms volume ducking feels right in real browser (speed, floor level)
 - [ ] Update button actual update flow (needs a real manifest endpoint)
+
+---
+
+## Brave taskbar icon fix (2026-10-11)
+
+**Problem**: Opening Brave showed a green DeepSeek whale in the KDE taskbar, not the default Brave lion.
+
+**Root cause**: The running "Brave" window is the DeepSeek Harness PWA (`/opt/brave-bin/brave --app=http://127.0.0.1:3080/ --class=crx_hgiemfgfjhalibdoboikeiepnnjapnpc`). KDE matches the window's `WM_CLASS` (`crx_hgiemfgfjhalibdoboikeiepnnjapnpc`) against `StartupWMClass` in `.desktop` files. It matched `~/.local/share/applications/brave-hgiemfgfjhalibdoboikeiepnnjapnpc-Default.desktop`, whose `Icon=` pointed to the green DeepSeek whale PNG (`~/.local/share/icons/hicolor/256x256/apps/brave-hgiemfgfjhalibdoboikeiepnnjapnpc-Default.png`).
+
+**Fix**: Changed that desktop file's `Icon=` from the green-whale path to `brave-desktop` (the standard Brave lion, present in `/usr/share/icons/hicolor/{16..256}x{16..256}/apps/`). Ran `update-desktop-database`. Original backed up to `brave-hgiemfgfjhalibdoboikeiepnnjapnpc-Default.desktop.bak-whale`.
+
+**Verification (10/10 angles passed)**:
+1. Desktop file `Icon=` is `brave-desktop` ✅
+2. Old green-whale path removed from desktop file ✅
+3. `brave-desktop` 256×256 icon file exists ✅
+4. `brave-desktop` present in all 7 standard sizes (16–256) ✅
+5. Running window `--class` == desktop file `StartupWMClass` ✅
+6. No competing desktop file claims the same WM_CLASS ✅
+7. `update-desktop-database` completed (exit 0) ✅
+8. hicolor icon theme structure valid for `brave-desktop` ✅
+9. Backup `.bak-whale` retains original green-whale path ✅
+10. Icon theme resolves `brave-desktop` to a real file ✅
+
+**End-to-end**: Launched a fresh PWA window with the same `--class`; KWin resolution WM_CLASS → desktop file → `Icon=brave-desktop` → `/usr/share/icons/hicolor/256x256/apps/brave-desktop.png` (lion). ✅
+
+**Visual evidence**: `/tmp/icon-before-after.png` — side-by-side green whale (before) vs Brave lion (after).
+
+**Note**: The currently-open PWA window (PID 12738) still shows the cached green whale in the taskbar until it is closed and reopened; new windows show the lion. Full-panel screenshot capture is limited on this Wayland session (compositor screen-capture protocol unavailable to agent processes; `grim`/`spectacle` blocked), so panel-level capture relies on the icon-file + resolution evidence above.
