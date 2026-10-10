@@ -1,6 +1,6 @@
 # WORK STATE — dsh-radio plugin
 
-Status: **IMPLEMENTED + VERIFIED (Playwright + screenshot), AWAITING USER CONFIRMATION**
+Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONFIRMATION**
 
 ---
 
@@ -18,6 +18,9 @@ Status: **IMPLEMENTED + VERIFIED (Playwright + screenshot), AWAITING USER CONFIR
 - `f2a0b5d` — Compact pill (74x16px) + remove sleep timer
 - `bbfbc79` — Remove sleep timer references from README
 - `e5741ed` — Update work state: compact pill + sleep timer removed
+- `9ad98ac` — Final work state
+- `a3f4b20` — Fix pill: max-width 160px, flex label, dynamic marquee distance, re-check on play state change
+- `8a60385` — Fix pill: fixed 160px width, verified marquee with long station name (260px overflow)
 
 ## Features implemented
 - Radio pill in `conversation.composer.dock` slot (requires active session)
@@ -36,19 +39,24 @@ Status: **IMPLEMENTED + VERIFIED (Playwright + screenshot), AWAITING USER CONFIR
 - Station metadata display (country · codec)
 - **Volume ducking**: auto-lower volume when typing in composer, restore on Enter
 
-## Verification evidence (2026-10-10T13:34)
+## Verification evidence (2026-10-10T14:15)
 - `node --check client.js` → SYNTAX OK
-- `browser_diagnose` → `pageErrors: []`, `rendered: true` (401 = no auth cookie, expected)
-- **Playwright + auth cookie** → ALL 9 CHECKS PASS:
-  1. PILL_EXISTS: true, SIZE: 74x16, COMPACT: true
-  2. PANEL_OPENS: true
-  3. NO_SLEEP_TIMER: true
-  4. TRANSPORT_BUTTONS: 2 (play + stop only)
-  5. VOLUME_SLIDER: true
-  6. SEARCH: true
-  7. STATIONS: 4
-  8. JS_ERRORS: NONE
-  9. DUCKING_CODE: present in bundle
+- **Playwright + auth cookie** → ALL 8 ASSERTIONS PASS:
+  1. Pill element exists
+  2. Pill width is 160px (got 160)
+  3. No JS errors (got 0)
+  4. Label element found for marquee test
+  5. Text overflows label (overflow=260px)
+  6. Scrolling class is applied
+  7. Marquee distance is correct (-260px)
+  8. Pill still 160px after marquee (got 160)
+
+## Pill CSS (final)
+- `.dsh-radio-pill`: `width:160px` (fixed), `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
+- `.dsh-radio-pill-label`: `flex:1;min-width:0;overflow:hidden;white-space:nowrap`
+- `.dsh-radio-pill-label-inner.scrolling`: `animation:dsh-radio-marquee 4s ease-in-out infinite alternate`
+- `@keyframes dsh-radio-marquee`: `0%{translateX(0)} 100%{translateX(var(--marquee-dist,-60px))}`
+- Marquee detection: `useEffect([label, playing])` → rAF → `scrollWidth - clientWidth > 1` → set `--marquee-dist` + add `.scrolling`
 
 ## Known limitations
 - `conversation.composer.dock` slot only renders with an active session (not "New Session" view)
