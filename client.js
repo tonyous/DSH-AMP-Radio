@@ -251,18 +251,25 @@ window.__ModuleLoader__.load({
         try { localStorage.setItem('dsh-radio-volume', String(volume)); } catch {}
       }, [volume]);
 
-      // Close on outside click.
+      // Close on outside click or Escape key.
       React.useEffect(() => {
         if (!open) return undefined;
-        const handler = (e) => {
+        const clickHandler = (e) => {
           const pill = pillRef.current;
           const panel = panelRef.current;
           if (pill && pill.contains(e.target)) return;
           if (panel && panel.contains(e.target)) return;
           closePanel();
         };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        const keyHandler = (e) => {
+          if (e.key === 'Escape') closePanel();
+        };
+        document.addEventListener('mousedown', clickHandler);
+        document.addEventListener('keydown', keyHandler);
+        return () => {
+          document.removeEventListener('mousedown', clickHandler);
+          document.removeEventListener('keydown', keyHandler);
+        };
       }, [open]);
 
       React.useEffect(() => {
