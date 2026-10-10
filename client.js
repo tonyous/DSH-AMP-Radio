@@ -100,9 +100,10 @@ window.__ModuleLoader__.load({
       .dsh-radio-title-update.spinning svg{animation:dsh-radio-spin 1s linear infinite;}
       .dsh-radio-title-update.available{color:var(--dsw-alias-state-business-primary,#4c8dff);}
       @keyframes dsh-radio-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-      .dsh-radio-pill-label{overflow:hidden;white-space:nowrap;max-width:120px;position:relative;}
-      .dsh-radio-pill-label-inner{display:inline-block;animation:dsh-radio-marquee 6s linear infinite;padding-right:24px;}
-      @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
+      .dsh-radio-pill-label{width:120px;overflow:hidden;white-space:nowrap;position:relative;}
+      .dsh-radio-pill-label-inner{display:inline-block;white-space:nowrap;}
+      .dsh-radio-pill-label-inner.scrolling{animation:dsh-radio-marquee 4s ease-in-out infinite alternate;}
+      @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(calc(-100% + 120px));}}
     `;
 
     function AmpLogo(props) {
@@ -180,6 +181,7 @@ window.__ModuleLoader__.load({
       const panelRef = React.useRef(null);
       const canvasRef = React.useRef(null);
       const pillCanvasRef = React.useRef(null);
+      const labelRef = React.useRef(null);
       const [open, setOpen] = React.useState(false);
       const [closing, setClosing] = React.useState(false);
       const [current, setCurrent] = React.useState(null);
@@ -250,6 +252,22 @@ window.__ModuleLoader__.load({
         if (a) a.volume = volume;
         try { localStorage.setItem('dsh-radio-volume', String(volume)); } catch {}
       }, [volume]);
+
+      // Only scroll the pill label if the text actually overflows.
+      React.useEffect(() => {
+        const el = labelRef.current;
+        if (!el) return;
+        const inner = el.firstElementChild;
+        if (!inner) return;
+        // Reset to static, then check overflow on next frame.
+        inner.classList.remove('scrolling');
+        const raf = requestAnimationFrame(() => {
+          if (el.scrollWidth > el.clientWidth + 1) {
+            inner.classList.add('scrolling');
+          }
+        });
+        return () => cancelAnimationFrame(raf);
+      }, [label]);
 
       // Close on outside click or Escape key.
       React.useEffect(() => {
@@ -516,7 +534,7 @@ window.__ModuleLoader__.load({
           },
         },
           h(AmpLogo, {size: 10}),
-          label ? h('span', {className: 'dsh-radio-pill-label'}, h('span', {className: 'dsh-radio-pill-label-inner'}, label)) : null,
+          label ? h('span', {ref: labelRef, className: 'dsh-radio-pill-label'}, h('span', {className: 'dsh-radio-pill-label-inner'}, label)) : null,
           playing ? h('canvas', {
             ref: (el) => { pillCanvasRef.current = el; },
             className: 'dsh-radio-pill-visualizer',
