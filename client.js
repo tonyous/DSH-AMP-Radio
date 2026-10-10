@@ -104,6 +104,8 @@ window.__ModuleLoader__.load({
       .dsh-radio-pill-label-inner{display:inline-block;white-space:nowrap;}
       .dsh-radio-pill-label-inner.scrolling{animation:dsh-radio-marquee 4s ease-in-out infinite alternate;}
       @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(calc(-100% + 120px));}}
+      .dsh-radio-pill-loading{color:var(--dsw-alias-label-tertiary,#8a8a8a);animation:dsh-radio-pulse 1.2s ease-in-out infinite;}
+      @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
     `;
 
     function AmpLogo(props) {
@@ -236,6 +238,14 @@ window.__ModuleLoader__.load({
         if (!a.paused && a.src) {
           setPlaying(true);
           setCurrent(prev => prev || {name: 'Radio', url: a.src});
+        } else {
+          // Restore last station from localStorage (not playing, just remembered).
+          try {
+            const saved = JSON.parse(localStorage.getItem('dsh-radio-last') || 'null');
+            if (saved && saved.name && saved.url) {
+              setCurrent(prev => prev || saved);
+            }
+          } catch {}
         }
         const onPlay = () => setPlaying(true);
         const onPause = () => setPlaying(false);
@@ -462,6 +472,7 @@ window.__ModuleLoader__.load({
         setError(null);
         setLoading(true);
         setCurrent({name, url});
+        try { localStorage.setItem('dsh-radio-last', JSON.stringify({name, url})); } catch {}
         // Ensure audio context is created and resumed before playing.
         ensureAudioContext();
         if (audioCtx && audioCtx.state === 'suspended') {
@@ -534,6 +545,7 @@ window.__ModuleLoader__.load({
           },
         },
           h(AmpLogo, {size: 10}),
+          loading ? h('span', {className: 'dsh-radio-pill-label dsh-radio-pill-loading'}, 'Connecting…') :
           label ? h('span', {ref: labelRef, className: 'dsh-radio-pill-label'}, h('span', {className: 'dsh-radio-pill-label-inner'}, label)) : null,
           playing ? h('canvas', {
             ref: (el) => { pillCanvasRef.current = el; },
