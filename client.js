@@ -49,7 +49,7 @@ window.__ModuleLoader__.load({
     const AMP_LOGO = "data:image/png;base64,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";
 
     const css = `
-      .dsh-radio-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid rgba(76,141,255,.3);border-radius:999px;background:rgba(76,141,255,.08);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:12px;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease;width:fit-content;flex-shrink:0;}
+      .dsh-radio-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid rgba(76,141,255,.3);border-radius:999px;background:rgba(76,141,255,.08);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:11px;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease;width:fit-content;flex-shrink:0;}
       .dsh-radio-pill:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-pill-logo{height:14px;width:auto;display:block;}
       .dsh-radio-pill-label{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-tertiary,#8a8a8a);}
@@ -106,8 +106,7 @@ window.__ModuleLoader__.load({
       @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(calc(-100% + 120px));}}
       .dsh-radio-pill-loading{color:var(--dsw-alias-label-tertiary,#8a8a8a);animation:dsh-radio-pulse 1.2s ease-in-out infinite;}
       @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-      .dsh-radio-sleep{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 4px;cursor:pointer;}
-      .dsh-radio-sleep:focus{outline:none;border-color:var(--dsw-alias-interactive-primary,#4c8dff);}
+
       .dsh-radio-now{padding:8px 14px;border-top:1px solid rgba(255,255,255,.06);}
       .dsh-radio-now-name{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#e6e6e6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .dsh-radio-now-meta{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);margin-top:2px;}
@@ -195,7 +194,6 @@ window.__ModuleLoader__.load({
       const [playing, setPlaying] = React.useState(false);
       const [loading, setLoading] = React.useState(false);
       const [error, setError] = React.useState(null);
-      const [sleepTimer, setSleepTimer] = React.useState(null); // seconds remaining, or null
       const [volume, setVolume] = React.useState(() => {
         try { const v = localStorage.getItem('dsh-radio-volume'); return v !== null ? Number(v) : 0.8; } catch { return 0.8; }
       });
@@ -355,28 +353,6 @@ window.__ModuleLoader__.load({
         });
         return () => cancelAnimationFrame(raf);
       }, [label]);
-
-      // Sleep timer countdown.
-      React.useEffect(() => {
-        if (sleepTimer === null || sleepTimer <= 0) return undefined;
-        const id = setInterval(() => {
-          setSleepTimer(prev => {
-            if (prev === null) return null;
-            if (prev <= 1) {
-              // Timer expired — pause audio.
-              const a = audioRef.current;
-              if (a) { a.pause(); setPlaying(false); }
-              return null;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        return () => clearInterval(id);
-      }, [sleepTimer !== null]);
-
-      function setSleep(minutes) {
-        setSleepTimer(minutes * 60);
-      }
 
       // Close on outside click or Escape key.
       React.useEffect(() => {
@@ -698,22 +674,6 @@ window.__ModuleLoader__.load({
             ),
             h('button', {type: 'button', className: 'dsh-radio-btn', disabled: !current, onClick: stop, 'aria-label': 'Stop'},
               h('svg', {viewBox: '0 0 24 24', width: 16, height: 16, fill: 'currentColor', 'aria-hidden': true}, h('rect', {x: 6, y: 6, width: 12, height: 12, rx: 2}))
-            ),
-            h('select', {
-              className: 'dsh-radio-sleep',
-              'aria-label': 'Sleep timer',
-              value: sleepTimer !== null ? 'active' : '',
-              onChange: e => {
-                const v = e.target.value;
-                if (v === '') setSleepTimer(null);
-                else setSleepTimer(Number(v));
-              },
-            },
-              h('option', {value: ''}, 'Sleep: Off'),
-              h('option', {value: '300'}, '5 min'),
-              h('option', {value: '900'}, '15 min'),
-              h('option', {value: '1800'}, '30 min'),
-              h('option', {value: '3600'}, '1 hour')
             )
           ),
           h('div', {className: 'dsh-radio-volume'},
