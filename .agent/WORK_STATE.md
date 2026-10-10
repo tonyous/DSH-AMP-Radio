@@ -15,6 +15,8 @@ Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
 - `3df151b` — Sleep timer (5/15/30/60 min) with auto-pause
 - `cde9963` — Station metadata display (country/codec) + Space keyboard shortcut
 - `1ec1c1b` — Fix pill TDZ bug (label before useEffect) + add volume ducking on typing/Enter
+- `f2a0b5d` — Compact pill (74x16px) + remove sleep timer
+- `bbfbc79` — Remove sleep timer references from README
 
 ## Features implemented
 - Radio pill in `conversation.composer.dock` slot (requires active session)
