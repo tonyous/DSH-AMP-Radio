@@ -1,6 +1,6 @@
 # WORK STATE — dsh-radio plugin
 
-Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
+Status: **IMPLEMENTED + VERIFIED (Playwright + screenshot), AWAITING USER CONFIRMATION**
 
 ---
 
@@ -17,6 +17,7 @@ Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
 - `1ec1c1b` — Fix pill TDZ bug (label before useEffect) + add volume ducking on typing/Enter
 - `f2a0b5d` — Compact pill (74x16px) + remove sleep timer
 - `bbfbc79` — Remove sleep timer references from README
+- `e5741ed` — Update work state: compact pill + sleep timer removed
 
 ## Features implemented
 - Radio pill in `conversation.composer.dock` slot (requires active session)
@@ -32,17 +33,22 @@ Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
 - Space key for play/pause (when panel focused)
 - Remember-last-station (localStorage, restores on reload)
 - Buffering indicator ("Connecting…" pulse)
-- Sleep timer (5/15/30/60 min, auto-pause)
 - Station metadata display (country · codec)
 - **Volume ducking**: auto-lower volume when typing in composer, restore on Enter
 
-## Verification evidence
-- `node --check client.js` → SYNTAX OK (all commits)
-- `browser_diagnose` 2026-10-10T13:17 → `pageErrors: []`, `rendered: true`
-- **Playwright + auth cookie** 2026-10-10T13:20 → `PILL_FOUND: true`, `RADIO_ELEMENTS: 2`, `JS_ERRORS: none`
-- **Screenshot confirmed**: AMP pill visible at bottom of composer dock showing "AMP" + volume %
-- TDZ bug root cause: `label` const used in `useEffect` dependency array before its declaration → `ReferenceError` crashed component
-- Fix: moved `label`/`statusText`/`showSearch`/`list` declarations above all `useEffect` calls
+## Verification evidence (2026-10-10T13:34)
+- `node --check client.js` → SYNTAX OK
+- `browser_diagnose` → `pageErrors: []`, `rendered: true` (401 = no auth cookie, expected)
+- **Playwright + auth cookie** → ALL 9 CHECKS PASS:
+  1. PILL_EXISTS: true, SIZE: 74x16, COMPACT: true
+  2. PANEL_OPENS: true
+  3. NO_SLEEP_TIMER: true
+  4. TRANSPORT_BUTTONS: 2 (play + stop only)
+  5. VOLUME_SLIDER: true
+  6. SEARCH: true
+  7. STATIONS: 4
+  8. JS_ERRORS: NONE
+  9. DUCKING_CODE: present in bundle
 
 ## Known limitations
 - `conversation.composer.dock` slot only renders with an active session (not "New Session" view)
@@ -51,5 +57,5 @@ Status: **IMPLEMENTED + VERIFIED (screenshot), AWAITING USER CONFIRMATION**
 ## Unresolved
 - [ ] User confirms marquee scrolling works in real browser
 - [ ] User confirms volume ducking feels right (speed, floor level)
-- [ ] User confirms sleep timer, metadata display, keyboard shortcuts work
+- [ ] User confirms metadata display, keyboard shortcuts work
 - [ ] Update button actual update flow (needs a real manifest endpoint)
