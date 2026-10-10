@@ -1,8 +1,10 @@
 {
   "name": "dsh-radio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Plays internet radio streams in the Harness interface.",
+  "description": "Internet radio player with live visualizer, station search, and favourites for DeepSeek Harness.",
+  "author": "AMP",
+  "keywords": ["radio", "streaming", "audio", "visualizer", "somafm"],
   "type": "module",
   "exports": {
     ".": "./index.js",

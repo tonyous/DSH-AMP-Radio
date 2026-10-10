@@ -91,10 +91,18 @@ window.__ModuleLoader__.load({
       .dsh-radio-empty{padding:14px;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-align:center;}
       .dsh-radio-visualizer{position:absolute;bottom:0;left:0;width:100%;height:60px;display:block;padding:0;background:transparent;pointer-events:none;z-index:10;}
       .dsh-radio-pill-visualizer{display:block;flex-shrink:0;margin-left:6px;}
-      .dsh-radio-title-link{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;margin-left:8px;transition:color .15s ease;}
+      .dsh-radio-title-link{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;transition:color .15s ease;display:flex;align-items:center;}
       .dsh-radio-title-link:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
-      .dsh-radio-title-discord{color:var(--dsw-alias-label-tertiary,#8a8a8a);margin-left:8px;display:flex;align-items:center;transition:color .15s ease;}
+      .dsh-radio-title-discord{color:var(--dsw-alias-label-tertiary,#8a8a8a);display:flex;align-items:center;transition:color .15s ease;}
       .dsh-radio-title-discord:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
+      .dsh-radio-title-update{border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .15s ease,background .15s ease;}
+      .dsh-radio-title-update:hover{color:var(--dsw-alias-label-primary,#e6e6e6);background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
+      .dsh-radio-title-update.spinning svg{animation:dsh-radio-spin 1s linear infinite;}
+      .dsh-radio-title-update.available{color:var(--dsw-alias-state-business-primary,#4c8dff);}
+      @keyframes dsh-radio-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+      .dsh-radio-pill-label{overflow:hidden;white-space:nowrap;max-width:120px;position:relative;}
+      .dsh-radio-pill-label-inner{display:inline-block;animation:dsh-radio-marquee 6s linear infinite;padding-right:24px;}
+      @keyframes dsh-radio-marquee{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
     `;
 
     function AmpLogo(props) {
@@ -192,6 +200,30 @@ window.__ModuleLoader__.load({
           return new Map(arr.filter(s => s && s.id).map(s => [s.id, s]));
         } catch { return new Map(); }
       });
+      const [updateState, setUpdateState] = React.useState('idle'); // idle | checking | available | up-to-date
+
+      async function checkForUpdates() {
+        setUpdateState('checking');
+        try {
+          // Check the plugin's own manifest for a newer version.
+          // In production this would point to a remote manifest URL.
+          const res = await fetch('/plugins/dsh-radio/manifest.json', {cache: 'no-store'});
+          if (res.ok) {
+            const manifest = await res.json();
+            const current = '1.0.0';
+            if (manifest.version && manifest.version !== current) {
+              setUpdateState('available');
+              // Cache the update info for applying
+              try { localStorage.setItem('dsh-radio-update', JSON.stringify(manifest)); } catch {}
+              return;
+            }
+          }
+          setUpdateState('up-to-date');
+          setTimeout(() => setUpdateState('idle'), 2000);
+        } catch {
+          setUpdateState('idle');
+        }
+      }
 
       // On mount, sync state from the shared audio (survives session switch).
       React.useEffect(() => {
@@ -477,7 +509,7 @@ window.__ModuleLoader__.load({
           },
         },
           h(AmpLogo, {size: 10}),
-          label ? h('span', {className: 'dsh-radio-pill-label'}, label) : null,
+          label ? h('span', {className: 'dsh-radio-pill-label'}, h('span', {className: 'dsh-radio-pill-label-inner'}, label)) : null,
           playing ? h('canvas', {
             ref: (el) => { pillCanvasRef.current = el; },
             className: 'dsh-radio-pill-visualizer',
@@ -510,6 +542,18 @@ window.__ModuleLoader__.load({
             },
               h('svg', {viewBox: '0 0 24 24', width: 14, height: 14, fill: 'currentColor', 'aria-hidden': true},
                 h('path', {d: 'M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.89.078.078 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.09.242.18.37.291a.078.078 0 0 1-.008.128 12.6 12.6 0 0 1-1.873.89.076.076 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.078.078 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.67a.061.061 0 0 0-.031-.029zM8.02 15.33c-1.183 0-2.157-.984-2.157-2.196 0-1.21.955-2.194 2.157-2.194 1.21 0 2.176.994 2.157 2.194 0 1.212-.956 2.196-2.157 2.196zm7.975 0c-1.183 0-2.157-.984-2.157-2.196 0-1.21.955-2.194 2.157-2.194 1.21 0 2.176.994 2.157 2.194 0 1.212-.946 2.196-2.157 2.196z'}))
+            ),
+            h('button', {
+              type: 'button',
+              className: 'dsh-radio-title-update' + (updateState === 'checking' ? ' spinning' : '') + (updateState === 'available' ? ' available' : ''),
+              'aria-label': updateState === 'available' ? 'Update available — click to apply' : 'Check for updates',
+              title: updateState === 'available' ? 'Update available' : 'Check for updates',
+              onClick: checkForUpdates,
+            },
+              h('svg', {viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true},
+                h('path', {d: 'M21 12a9 9 0 1 1-2.64-6.36'}),
+                h('path', {d: 'M21 3v6h-6'})
+              )
             ),
             h('button', {type: 'button', className: 'dsh-radio-close', 'aria-label': 'Close', onClick: closePanel}, '×')
           ),
