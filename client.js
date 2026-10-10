@@ -108,6 +108,9 @@ window.__ModuleLoader__.load({
       @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
       .dsh-radio-sleep{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 4px;cursor:pointer;}
       .dsh-radio-sleep:focus{outline:none;border-color:var(--dsw-alias-interactive-primary,#4c8dff);}
+      .dsh-radio-now{padding:8px 14px;border-top:1px solid rgba(255,255,255,.06);}
+      .dsh-radio-now-name{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#e6e6e6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .dsh-radio-now-meta{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);margin-top:2px;}
     `;
 
     function AmpLogo(props) {
@@ -316,6 +319,10 @@ window.__ModuleLoader__.load({
         };
         const keyHandler = (e) => {
           if (e.key === 'Escape') closePanel();
+          if (e.key === ' ' && panelRef.current && panelRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            toggle();
+          }
         };
         document.addEventListener('mousedown', clickHandler);
         document.addEventListener('keydown', keyHandler);
@@ -648,6 +655,10 @@ window.__ModuleLoader__.load({
           h('div', {className: 'dsh-radio-volume'},
             h('input', {id: 'dsh-radio-vol', type: 'range', min: 0, max: 1, step: 0.01, value: volume, 'aria-label': 'Volume', onChange: e => setVolume(Number(e.target.value))})
           ),
+          current ? h('div', {className: 'dsh-radio-now'},
+            h('div', {className: 'dsh-radio-now-name'}, current.name),
+            (current.country || current.codec) ? h('div', {className: 'dsh-radio-now-meta'}, [current.country, current.codec].filter(Boolean).join(' · ')) : null
+          ) : null,
           h('div', {className: 'dsh-radio-search'},
             h('input', {
               type: 'search', className: 'dsh-radio-search-input',
