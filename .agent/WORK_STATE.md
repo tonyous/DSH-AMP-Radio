@@ -39,17 +39,23 @@ Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONF
 - Station metadata display (country · codec)
 - **Volume ducking**: auto-lower volume when typing in composer, restore on Enter
 
-## Verification evidence (2026-10-10T14:15)
+## Verification evidence (2026-10-10T14:30)
 - `node --check client.js` → SYNTAX OK
-- **Playwright + auth cookie** → ALL 8 ASSERTIONS PASS:
+- `browser_diagnose` → `pageErrors: []`, `rendered: true` (401 = no auth cookie, expected)
+- **Playwright + auth cookie** → ALL 7 ASSERTIONS PASS:
   1. Pill element exists
-  2. Pill width is 160px (got 160)
-  3. No JS errors (got 0)
-  4. Label element found for marquee test
-  5. Text overflows label (overflow=260px)
-  6. Scrolling class is applied
-  7. Marquee distance is correct (-260px)
-  8. Pill still 160px after marquee (got 160)
+  2. No station name text in pill
+  3. AMP logo is present
+  4. Pill is compact (width=160)
+  5. No JS errors (got 0)
+  6. Panel opens on click
+  7. Stations listed (4)
+
+## Pill design (final)
+- **Logo + visualizer only** — no station name text, no marquee
+- `.dsh-radio-pill`: `width:160px` (fixed), `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
+- AMP logo (10px) + "Connecting…" loading text + visualizer canvas (36×14, only when playing)
+- Marquee CSS + detection effect removed (no longer needed)
 
 ## Pill CSS (final)
 - `.dsh-radio-pill`: `width:160px` (fixed), `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
