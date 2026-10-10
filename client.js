@@ -270,67 +270,100 @@ window.__ModuleLoader__.load({
         try { localStorage.setItem('dsh-radio-volume', String(volume)); } catch {}
       }, [volume]);
 
-      // ── Volume ducking: lower while typing, restore on Enter ──
+      // ── Volume ducking: Apple-smooth, every scenario handled ──
       const [ducking, setDucking] = React.useState(false);
       const duckingRef = React.useRef(false);
       const originalVolRef = React.useRef(null);
       const volumeRef = React.useRef(volume);
+      const lastEnterRef = React.useRef(0);
+      const fadeRafRef = React.useRef(null);
       React.useEffect(() => { volumeRef.current = volume; }, [volume]);
 
+      // Smooth fade with ease-out cubic (fast start, gentle finish)
+      const fadeVolume = (from, to, duration) => {
+        if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current);
+        if (Math.abs(from - to) < 0.001) return;
+        const start = performance.now();
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setVolume(from + (to - from) * eased);
+          if (t < 1) fadeRafRef.current = requestAnimationFrame(step);
+        };
+        fadeRafRef.current = requestAnimationFrame(step);
+      };
+
       React.useEffect(() => {
-        const isComposer = (el) => {
-          if (!el) return false;
-          const t = el.tagName;
-          if (t === 'TEXTAREA') return true;
-          if (t === 'INPUT') {
-            const type = (el.type || 'text').toLowerCase();
-            return type === 'text' || type === 'search' || type === '';
-          }
-          if (el.isContentEditable) return true;
-          return false;
-        };
-        const onInput = (e) => {
-          if (isComposer(e.target) && !duckingRef.current) {
-            originalVolRef.current = volumeRef.current;
-            duckingRef.current = true;
-            setDucking(true);
-          }
-        };
+        // Single MutationObserver catches ALL composer changes:
+        // typing, backspace, paste, cut, select-all-delete, app clear
+        const composerEl = document.querySelector('[contenteditable=true]');
+        let observer = null;
+        if (composerEl) {
+          observer = new MutationObserver(() => {
+            const text = (composerEl.textContent || '').trim();
+            if (text.length === 0) {
+              // Composer emptied → restore volume
+              if (duckingRef.current) {
+                duckingRef.current = false;
+                setDucking(false);
+              }
+            } else if (!duckingRef.current) {
+              // Composer has content → start ducking
+              if (Date.now() - lastEnterRef.current < 600) return;
+              originalVolRef.current = volumeRef.current;
+              duckingRef.current = true;
+              setDucking(true);
+            }
+          });
+          observer.observe(composerEl, { childList: true, characterData: true, subtree: true });
+        }
+
+        // Enter → restore
         const onKeyDown = (e) => {
           if (e.key === 'Enter' && duckingRef.current) {
+            lastEnterRef.current = Date.now();
             duckingRef.current = false;
             setDucking(false);
           }
         };
-        document.addEventListener('input', onInput, true);
         document.addEventListener('keydown', onKeyDown, true);
+
+        // Click away → restore (150ms delay to let click propagate)
+        const onBlur = () => {
+          setTimeout(() => {
+            if (duckingRef.current) {
+              duckingRef.current = false;
+              setDucking(false);
+            }
+          }, 150);
+        };
+        document.addEventListener('focusout', onBlur, true);
+
         return () => {
-          document.removeEventListener('input', onInput, true);
           document.removeEventListener('keydown', onKeyDown, true);
+          document.removeEventListener('focusout', onBlur, true);
+          if (observer) observer.disconnect();
         };
       }, []);
 
-      // Gradually duck volume down (floor at 15%).
+      // Fade down: 30% reduction (subtle, never mutes)
       React.useEffect(() => {
         if (!ducking) return undefined;
-        const id = setInterval(() => {
-          setVolume(v => Math.max(0.15, v - 0.025));
-        }, 60);
-        return () => clearInterval(id);
+        const from = volumeRef.current;
+        const to = from * 0.7;
+        fadeVolume(from, to, 250);
+        return () => { if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current); };
       }, [ducking]);
 
-      // Gradually restore volume to original.
+      // Fade up: restore to original
       React.useEffect(() => {
         if (ducking) return undefined;
         const target = originalVolRef.current;
         if (target === null) return undefined;
-        const id = setInterval(() => {
-          setVolume(v => {
-            if (v >= target) { originalVolRef.current = null; return target; }
-            return Math.min(target, v + 0.025);
-          });
-        }, 60);
-        return () => clearInterval(id);
+        const from = volumeRef.current;
+        fadeVolume(from, target, 350);
+        originalVolRef.current = null;
+        return () => { if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current); };
       }, [ducking]);
 
       // Only scroll the pill label if the text actually overflows.

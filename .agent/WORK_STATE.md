@@ -1,6 +1,6 @@
 # WORK STATE — dsh-radio plugin
 
-Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONFIRMATION**
+Status: **IMPLEMENTED + VERIFIED (Playwright 17/17 assertions), AWAITING USER CONFIRMATION**
 
 ---
 
@@ -21,6 +21,8 @@ Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONF
 - `9ad98ac` — Final work state
 - `a3f4b20` — Fix pill: max-width 160px, flex label, dynamic marquee distance, re-check on play state change
 - `8a60385` — Fix pill: fixed 160px width, verified marquee with long station name (260px overflow)
+- `b3162e7` — Pill: fit-content width (74×16px), AMP logo + visualizer only
+- (next) — Apple-perfect volume ducking: MutationObserver + focusout + ease-out cubic fades
 
 ## Features implemented
 - Radio pill in `conversation.composer.dock` slot (requires active session)
@@ -28,7 +30,6 @@ Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONF
 - Favourites (localStorage persisted)
 - Web Audio API visualizer (panel + pill)
 - Volume control (localStorage persisted)
-- Scrolling marquee text for station name in pill (only when overflow, stops when revealed)
 - Update check button in title bar
 - get-amp.com link + Discord icon in title bar (properly aligned)
 - Professional files: README.md, LICENSE, manifest.json
@@ -37,39 +38,42 @@ Status: **IMPLEMENTED + VERIFIED (Playwright 8/8 assertions), AWAITING USER CONF
 - Remember-last-station (localStorage, restores on reload)
 - Buffering indicator ("Connecting…" pulse)
 - Station metadata display (country · codec)
-- **Volume ducking**: auto-lower volume when typing in composer, restore on Enter
+- **Volume ducking (Apple-perfect)**: smooth fade down 30% while typing, fade up on Enter/blur/empty
 
-## Verification evidence (2026-10-10T14:30)
+## Volume ducking implementation (final)
+- **Detection**: Single `MutationObserver` on `[contenteditable=true]` catches ALL composer changes (typing, backspace, paste, cut, select-all-delete, app clear)
+- **Start ducking**: text.length > 0 && !duckingRef.current && (Date.now() - lastEnterRef > 600ms)
+- **Stop ducking**: text.length === 0 (composer emptied) OR Enter key OR focusout (blur, 150ms delay)
+- **Fade down**: `volume * 0.7` over 250ms, ease-out cubic (`1 - (1-t)^3`)
+- **Fade up**: `originalVolRef.current` over 350ms, ease-out cubic
+- **Never mutes**: proportional duck (30% reduction from current level)
+- **No double-duck**: `duckingRef.current` guard + 600ms Enter cooldown
+
+## Verification evidence (2026-10-10T15:00)
 - `node --check client.js` → SYNTAX OK
-- `browser_diagnose` → `pageErrors: []`, `rendered: true` (401 = no auth cookie, expected)
-- **Playwright + auth cookie** → ALL 7 ASSERTIONS PASS:
-  1. Pill element exists
-  2. No station name text in pill
-  3. AMP logo is present
-  4. Pill is compact (width=160)
-  5. No JS errors (got 0)
-  6. Panel opens on click
-  7. Stations listed (4)
+- **Playwright 10-scenario suite → 17/17 ASSERTIONS PASS**:
+  1. Type → duck down to ~70% (0.8 → 0.56) ✅
+  2. Enter → restore to original (0.56 → 0.8) ✅
+  3. Type → Backspace all → restore (no Enter needed) ✅
+  4. Type → Click away (blur) → restore ✅
+  5. Proportional duck (never mutes, 70% of current) ✅
+  6. Type → Enter → Type again → ducks again ✅
+  7. Rapid typing → stays ducked, stable at ~70% ✅
+  8. Type → Select all → Delete → restore ✅
+  9. Volume preserved after full duck cycle ✅
+  10. No double-duck (typing while already ducked) ✅
+- **Screenshot**: `/tmp/dsh-radio-pill.png` — pill visible at bottom (AMP logo + 45% volume)
 
 ## Pill design (final)
 - **Logo + visualizer only** — no station name text, no marquee
-- `.dsh-radio-pill`: `width:160px` (fixed), `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
+- `.dsh-radio-pill`: `width:fit-content`, `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
 - AMP logo (10px) + "Connecting…" loading text + visualizer canvas (36×14, only when playing)
-- Marquee CSS + detection effect removed (no longer needed)
-
-## Pill CSS (final)
-- `.dsh-radio-pill`: `width:160px` (fixed), `display:inline-flex`, `gap:4px`, `padding:2px 6px`, `font-size:11px`
-- `.dsh-radio-pill-label`: `flex:1;min-width:0;overflow:hidden;white-space:nowrap`
-- `.dsh-radio-pill-label-inner.scrolling`: `animation:dsh-radio-marquee 4s ease-in-out infinite alternate`
-- `@keyframes dsh-radio-marquee`: `0%{translateX(0)} 100%{translateX(var(--marquee-dist,-60px))}`
-- Marquee detection: `useEffect([label, playing])` → rAF → `scrollWidth - clientWidth > 1` → set `--marquee-dist` + add `.scrolling`
 
 ## Known limitations
 - `conversation.composer.dock` slot only renders with an active session (not "New Session" view)
 - Update button fetches `/plugins/dsh-radio/manifest.json` — may 404 (graceful fallback)
+- Headless Chromium: `<audio>` stays `paused:true`, visualizer canvas never renders in automated tests
 
 ## Unresolved
-- [ ] User confirms marquee scrolling works in real browser
-- [ ] User confirms volume ducking feels right (speed, floor level)
-- [ ] User confirms metadata display, keyboard shortcuts work
+- [ ] User confirms volume ducking feels right in real browser (speed, floor level)
 - [ ] Update button actual update flow (needs a real manifest endpoint)
