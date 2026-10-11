@@ -346,11 +346,11 @@ window.__ModuleLoader__.load({
         };
       }, []);
 
-      // Fade down: 30% reduction (subtle, never mutes)
+      // Fade down: 50% reduction (subtle, never mutes)
       React.useEffect(() => {
         if (!ducking) return undefined;
         const from = volumeRef.current;
-        const to = from * 0.7;
+        const to = from * 0.5;
         fadeVolume(from, to, 250);
         return () => { if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current); };
       }, [ducking]);
