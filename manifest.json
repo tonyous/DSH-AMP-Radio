@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "name": "dsh-radio",
-  "description": "Internet radio player with live visualizer, station search, and favourites.",
-  "updated": "2026-10-10"
+  "version": "1.2.0",
+  "name": "DSH-AMP-Radio",
+  "description": "AMP radio player with live visualizer, station search, and favourites.",
+  "updated": "2026-10-13"
 }

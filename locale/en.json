@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Radio",
-    "description": "Plays internet radio streams in the Harness interface."
+    "title": "DSH-AMP-Radio",
+    "description": "AMP radio player for the Harness interface."
   }
 }

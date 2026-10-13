@@ -1,92 +1,52 @@
-# dsh-radio
+# DSH-AMP-Radio
 
-Internet radio player plugin for DeepSeek Harness.
+**AMP radio player** for DeepSeek Harness.
+
+A clean internet-radio player that lives in your DeepSeek Harness composer dock. Pick a station, press play, and enjoy.
+
+![AMP Radio — panel with live visualizer](./screenshot.png)
+
+**Official website:** [get-amp.com](https://get-amp.com)
+
+<a href="https://discord.gg/hr3zfQmyVQ"><svg viewBox="0 0 127.14 96" width="22" height="17" aria-hidden="true"><path fill="#5865F2" d="M107.7 8.07a105 105 0 0 0-32.45-10l-2.33 4.73a98 98 0 0 0-31.08 0l-2.33-4.73a105 105 0 0 0-32.45 10C1.25 38.41-3.15 68.4 1.7 97.9a105.7 105.7 0 0 0 32.45 10l2.33-4.73a98 98 0 0 0-16.06-7.6l.42-.32a80 80 0 0 0 23.2 7.18l1.77-4.5a85 85 0 0 0-14.8-7.18 52 52 0 0 0 2.12-1.73 93.4 93.4 0 0 0 40.4 0 48 48 0 0 0 2.12 1.73 85 85 0 0 0-14.8 7.18l1.77 4.5a80 80 0 0 0 23.2-7.18l.42.32a98 98 0 0 0-16.06 7.6l2.33 4.73a105 105 0 0 0 32.45-10c4.85-29.5.45-59.49-13.8-89.83Zm-45.1 71.6c-4.83 0-8.77-3.9-8.85-8.72 0-4.82 3.9-8.72 8.77-8.72 4.83 0 8.77 3.9 8.77 8.72 0 4.82-3.94 8.72-8.77 8.72Zm31.08 0c-4.83 0-8.77-3.9-8.77-8.72 0-4.82 3.94-8.72 8.77-8.72 4.83 0 8.77 3.9 8.77 8.72 0 4.82-3.94 8.72-8.77 8.72Z"/></svg> Join us on Discord</a>
 
 ## Features
 
-- **Station browser** — search thousands of internet radio stations via the [Radio Browser](https://www.radio-browser.info/) directory
-- **Favourites** — star stations to pin them to the top of your list (persisted in localStorage)
-- **Audio visualizer** — real-time frequency bars using the Web Audio API (panel + pill)
-- **Volume control** — persistent volume slider
-- **Live update check** — check for plugin updates from the title bar
-- **Compact pill** — sits in the composer dock with a scrolling station name and mini visualizer
-- **Remember last station** — restores your last played station on page reload
-- **Buffering indicator** — "Connecting…" pulse while a stream loads
-- **Station metadata** — shows country and codec for the current station
-- **Keyboard shortcuts** — `Space` = play/pause, `Escape` = close panel
+- 🎵 **Internet radio** — stream any MP3/OGG stream
+- 📊 **Live visualizer** — real-time frequency bars in the pill and panel
+- ⭐ **Favorites** — star stations, they stick
+- 🔍 **Search** — filter stations instantly
+- 🪟 **Pill + panel** — compact pill in the dock, full panel for browsing
 
-## Installation
+## Install
 
-This plugin is installed as a local DSH plugin. It lives in:
+Install it from inside DeepSeek Harness — no files to move, works on **Windows, macOS and Linux**.
 
-```
-~/.local/share/deepseek-harness/home/profiles/web/plugins/dsh-radio/
-```
+1. Open the **Plugins** panel in DeepSeek Harness.
+2. Click **Add plugin**.
+3. Paste the repo URL: `https://github.com/tonyous/DSH-AMP-Radio`
+4. Click **Install**.
 
-No build step required. The plugin is loaded automatically when the DSH web server starts.
+That's it — the **AMP** pill appears in your composer dock.
 
-## Usage
+## Using it
 
-1. Click the **AMP pill** in the composer dock (bottom of the conversation area)
-2. The radio panel opens above the pill
-3. **Search** for any station by name, or pick from the default stations
-4. Click a station to start streaming
-5. Use **Play/Pause** and **Stop** buttons to control playback
-6. **Star** stations to add them to your favourites
-7. Adjust **volume** with the slider
-8. Click the **refresh icon** in the title bar to check for updates
-10. Click **×** or press **Escape** to close the panel (audio keeps playing)
+1. Click the **AMP pill** in the composer dock to open the panel.
+2. Pick a station (or type in the search box).
+3. Press **play** — the music starts and the visualizer lights up.
 
-## Keyboard Shortcuts
+## Keyboard shortcuts
 
 | Key | Action |
 |-----|--------|
-| `Space` | Play/Pause (when panel is focused) |
-| `Escape` | Close panel |
+| `Space` | Play / pause |
+| `Esc` | Close panel |
 
-## Title Bar Links
+## Links
 
-| Element | Destination |
-|---------|-------------|
-| AMP logo | (decorative) |
-| get-amp.com | https://get-amp.com |
-| Discord icon | https://discord.gg/tZKwTk9y |
-| Refresh icon | Check for plugin updates |
-| × | Close panel |
-
-## Default Stations
-
-| Name | Stream |
-|------|--------|
-| Groove Salad | SomaFM — relaxing guitar |
-| Drone Zone | SomaFM — ambient drones |
-| Indie Pop | SomaFM — indie music |
-| Sonic Universe | SomaFM — electronic |
-
-## Development
-
-```
-dsh-radio/
-├── package.json          # Plugin metadata & DSH config
-├── index.js              # Host entry point (no-op)
-├── client.js             # All client-side code (React)
-├── cordis.patch.yml      # Bundle patch registration
-├── icon.svg              # Plugin icon
-├── manifest.json         # Version manifest for update checks
-├── locale/
-│   └── en.json           # Display name & description
-├── README.md             # This file
-└── LICENSE               # MIT License
-```
-
-### Architecture
-
-- Single-file React component (`client.js`) using `createElement` (no JSX)
-- Audio element is module-level (survives session switches)
-- Web Audio API `AnalyserNode` drives both visualizers
-- Station search uses the Radio Browser public API with fallback hosts
-- Favourites, volume, and last station persisted in `localStorage`
-- Pill label uses CSS marquee animation (only when text overflows)
+- **Official website:** [get-amp.com](https://get-amp.com)
+- **Join us on Discord:** [discord.gg/hr3zfQmyVQ](https://discord.gg/hr3zfQmyVQ)
+- **GitHub:** [tonyous/DSH-AMP-Radio](https://github.com/tonyous/DSH-AMP-Radio)
 
 ## License
 

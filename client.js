@@ -221,10 +221,10 @@ window.__ModuleLoader__.load({
         try {
           // Check the plugin's own manifest for a newer version.
           // In production this would point to a remote manifest URL.
-          const res = await fetch('/plugins/dsh-radio/manifest.json', {cache: 'no-store'});
+          const res = await fetch('/plugins/dsh-amp-radio/manifest.json', {cache: 'no-store'});
           if (res.ok) {
             const manifest = await res.json();
-            const current = '1.1.0';
+            const current = '1.2.0';
             if (manifest.version && manifest.version !== current) {
               setUpdateState('available');
               // Cache the update info for applying

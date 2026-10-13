@@ -1,8 +1,8 @@
 {
-  "name": "dsh-radio",
-  "version": "1.1.0",
+  "name": "dsh-amp-radio",
+  "version": "1.2.0",
   "private": true,
-  "description": "Internet radio player with live visualizer, station search, and favourites for DeepSeek Harness.",
+  "description": "AMP radio player with live visualizer, station search, and favourites for DeepSeek Harness.",
   "author": "AMP",
   "keywords": ["radio", "streaming", "audio", "visualizer", "somafm"],
   "type": "module",
