@@ -61,11 +61,11 @@ window.__ModuleLoader__.load({
       @keyframes dsh-radio-eq{0%,100%{transform:scaleY(.4);}50%{transform:scaleY(1);}}
       .dsh-radio-panel{position:fixed;z-index:2147483000;width:320px;height:520px;box-sizing:border-box;padding:0;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:14px;background:var(--dsw-specific-menu,var(--dsw-alias-bg-l1,#1c1c1e));color:var(--dsw-alias-label-primary,#e6e6e6);box-shadow:var(--dsw-elevation-prominent,0 8px 28px rgba(0,0,0,.45));font-size:13px;transform-origin:top left;animation:dsh-radio-open .18s ease-out;overflow:hidden;display:flex;flex-direction:column;}
       .dsh-radio-panel-closing{animation:dsh-radio-close .15s ease-in forwards;pointer-events:none;}
-      @keyframes dsh-radio-open{from{opacity:0;transform:scale(.92) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
-      @keyframes dsh-radio-close{from{opacity:1;transform:scale(1) translateY(0);}to{opacity:0;transform:scale(.92) translateY(6px);}}
+      @keyframes dsh-radio-open{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+      @keyframes dsh-radio-close{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(16px);}}
       .dsh-radio-title{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;font-weight:600;}
       .dsh-radio-title-logo{height:12px;width:auto;display:block;}
-      .dsh-radio-close{margin-left:auto;border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);font-size:20px;line-height:1;cursor:pointer;padding:6px 10px;border-radius:8px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
+      .dsh-radio-close{border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);font-size:20px;line-height:1;cursor:pointer;padding:6px 10px;border-radius:8px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
       .dsh-radio-close:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));color:var(--dsw-alias-label-primary,#e6e6e6);}
       .dsh-radio-transport{display:flex;gap:6px;padding:0 14px;margin-bottom:12px;}
       .dsh-radio-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:8px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:10px;background:var(--dsw-alias-bg-l2,rgba(128,128,128,.12));color:inherit;font:inherit;font-size:12px;cursor:pointer;transition:background .12s ease,border-color .12s ease;}
@@ -95,7 +95,7 @@ window.__ModuleLoader__.load({
       .dsh-radio-title-link:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
       .dsh-radio-title-discord{color:var(--dsw-alias-label-tertiary,#8a8a8a);display:flex;align-items:center;transition:color .15s ease;}
       .dsh-radio-title-discord:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
-      .dsh-radio-title-update{border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .15s ease,background .15s ease;}
+      .dsh-radio-title-update{margin-left:auto;border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .15s ease,background .15s ease;}
       .dsh-radio-title-update:hover{color:var(--dsw-alias-label-primary,#e6e6e6);background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-title-update.spinning svg{animation:dsh-radio-spin 1s linear infinite;}
       .dsh-radio-title-update.available{color:var(--dsw-alias-state-business-primary,#4c8dff);}
@@ -163,8 +163,11 @@ window.__ModuleLoader__.load({
       return sharedAudio;
     }
 
-    // Web Audio API setup for visualizer.
+    // Web Audio API setup for visualizer. Returns null where Web Audio is
+    // unavailable: audio still plays, only the visualizer is skipped.
     function ensureAudioContext() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return { ctx: null, analyser: null };
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioCtx.createAnalyser();
@@ -221,7 +224,7 @@ window.__ModuleLoader__.load({
           const res = await fetch('/plugins/dsh-radio/manifest.json', {cache: 'no-store'});
           if (res.ok) {
             const manifest = await res.json();
-            const current = '1.0.0';
+            const current = '1.1.0';
             if (manifest.version && manifest.version !== current) {
               setUpdateState('available');
               // Cache the update info for applying
@@ -433,6 +436,7 @@ window.__ModuleLoader__.load({
           if (!canvas || cancelled) return;
           const ctx2d = canvas.getContext('2d');
           let { analyser: a } = ensureAudioContext();
+          if (!a) return;
           const data = new Uint8Array(a.frequencyBinCount);
 
           function draw() {
@@ -480,6 +484,7 @@ window.__ModuleLoader__.load({
           if (!canvas || cancelled) return;
           const ctx2d = canvas.getContext('2d');
           let { analyser: a } = ensureAudioContext();
+          if (!a) return;
           const data = new Uint8Array(a.frequencyBinCount);
 
           function draw() {
@@ -732,9 +737,15 @@ window.__ModuleLoader__.load({
         document.head.appendChild(style);
         return () => style.remove();
       }, 'dsh-radio: scoped styles');
-      ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-        name: 'conversation.composer.dock', id: 'dsh-radio', order: 20,
-      }, RadioPill));
+      // Never let a missing/renamed dock slot break client boot: worst case
+      // on an unknown DSH version is a missing radio button, never an error.
+      try {
+        ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+          name: 'conversation.composer.dock', id: 'dsh-radio', order: 20,
+        }, RadioPill));
+      } catch (e) {
+        console.warn('[dsh-radio] composer dock unavailable, pill not mounted:', e?.message || e);
+      }
     }
 
     return {inject: ['slots'], apply, RadioPill};

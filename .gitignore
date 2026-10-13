@@ -1,0 +1,6 @@
+# Dev / local artifacts — not part of the published plugin
+.agent/
+test-results/
+node_modules/
+*.log
+.DS_Store
