@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-radio',
+  id: 'dsh-amp-radio',
   factory(require) {
     const React = require('react');
     const {createPortal} = require('react-dom');
