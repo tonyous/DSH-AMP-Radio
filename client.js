@@ -99,6 +99,7 @@ window.__ModuleLoader__.load({
       .dsh-radio-title-update:hover{color:var(--dsw-alias-label-primary,#e6e6e6);background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-title-update.spinning svg{animation:dsh-radio-spin 1s linear infinite;}
       .dsh-radio-title-update.available{color:var(--dsw-alias-state-business-primary,#4c8dff);}
+      .dsh-radio-title-update.up-to-date{color:var(--dsw-alias-state-success-primary,#57c785);}
       @keyframes dsh-radio-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
       .dsh-radio-pill-loading{color:var(--dsw-alias-label-tertiary,#8a8a8a);animation:dsh-radio-pulse 1.2s ease-in-out infinite;}
       @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
@@ -382,7 +383,10 @@ window.__ModuleLoader__.load({
         };
         const keyHandler = (e) => {
           if (e.key === 'Escape') closePanel();
-          if (e.key === ' ' && panelRef.current && panelRef.current.contains(document.activeElement)) {
+          // Never hijack typing: space in search/inputs must type a space.
+          const t = e.target;
+          const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+          if (e.key === ' ' && !typing && panelRef.current && panelRef.current.contains(document.activeElement)) {
             e.preventDefault();
             toggle();
           }
@@ -671,9 +675,9 @@ window.__ModuleLoader__.load({
             ),
             h('button', {
               type: 'button',
-              className: 'dsh-radio-title-update' + (updateState === 'checking' ? ' spinning' : '') + (updateState === 'available' ? ' available' : ''),
-              'aria-label': updateState === 'available' ? 'Update available — click to apply' : 'Check for updates',
-              title: updateState === 'available' ? 'Update available' : 'Check for updates',
+                className: 'dsh-radio-title-update' + (updateState === 'checking' ? ' spinning' : '') + (updateState === 'available' ? ' available' : '') + (updateState === 'up-to-date' ? ' up-to-date' : ''),
+                'aria-label': updateState === 'available' ? 'Update available — click to apply' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
+                title: updateState === 'available' ? 'Update available' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
               onClick: checkForUpdates,
             },
               h('svg', {viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true},
