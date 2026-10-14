@@ -98,8 +98,8 @@ window.__ModuleLoader__.load({
       .dsh-radio-title-update{margin-left:auto;border:none;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a8a);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .15s ease,background .15s ease;}
       .dsh-radio-title-update:hover{color:var(--dsw-alias-label-primary,#e6e6e6);background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-title-update.spinning svg{animation:dsh-radio-spin 1s linear infinite;}
-      .dsh-radio-title-update.available{color:var(--dsw-alias-state-business-primary,#4c8dff);}
-      .dsh-radio-title-update.up-to-date{color:var(--dsw-alias-state-success-primary,#57c785);}
+      .dsh-radio-title-update.available{color:var(--dsw-alias-state-success-primary,#57c785);}
+      .dsh-radio-title-update.up-to-date{color:var(--dsw-alias-state-business-primary,#4c8dff);}
       @keyframes dsh-radio-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
       .dsh-radio-pill-loading{color:var(--dsw-alias-label-tertiary,#8a8a8a);animation:dsh-radio-pulse 1.2s ease-in-out infinite;}
       @keyframes dsh-radio-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
@@ -220,18 +220,20 @@ window.__ModuleLoader__.load({
       async function checkForUpdates() {
         setUpdateState('checking');
         try {
-          // Check the plugin's own manifest for a newer version.
-          // In production this would point to a remote manifest URL.
-          const res = await fetch('/plugins/dsh-amp-radio/manifest.json', {cache: 'no-store'});
-          if (res.ok) {
-            const manifest = await res.json();
-            const current = '1.2.0';
-            if (manifest.version && manifest.version !== current) {
-              setUpdateState('available');
-              // Cache the update info for applying
-              try { localStorage.setItem('dsh-radio-update', JSON.stringify(manifest)); } catch {}
-              return;
-            }
+          // Current = our own installed manifest (no hardcoded version).
+          const localRes = await fetch('/plugins/dsh-amp-radio/manifest.json', {cache: 'no-store'});
+          const local = localRes.ok ? await localRes.json() : {};
+          const current = local.version || '0.0.0';
+          // Latest = GitHub raw manifest. Offline failure falls through to up-to-date.
+          let latest = null;
+          try {
+            const rem = await fetch('https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/manifest.json', {cache: 'no-store'});
+            if (rem.ok) latest = (await rem.json()).version;
+          } catch {}
+          if (latest && latest !== current) {
+            setUpdateState('available');
+            try { localStorage.setItem('dsh-radio-update', JSON.stringify({version: latest})); } catch {}
+            return;
           }
           setUpdateState('up-to-date');
           setTimeout(() => setUpdateState('idle'), 2000);
@@ -676,8 +678,8 @@ window.__ModuleLoader__.load({
             h('button', {
               type: 'button',
                 className: 'dsh-radio-title-update' + (updateState === 'checking' ? ' spinning' : '') + (updateState === 'available' ? ' available' : '') + (updateState === 'up-to-date' ? ' up-to-date' : ''),
-                'aria-label': updateState === 'available' ? 'Update available — click to apply' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
-                title: updateState === 'available' ? 'Update available' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
+                'aria-label': updateState === 'available' ? 'Update available (green) — reinstall plugin to update' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
+                title: updateState === 'available' ? 'Update available — reinstall plugin to update' : updateState === 'up-to-date' ? 'Up to date ✓' : updateState === 'checking' ? 'Checking for updates…' : 'Check for updates',
               onClick: checkForUpdates,
             },
               h('svg', {viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true},
