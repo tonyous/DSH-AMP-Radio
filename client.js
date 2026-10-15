@@ -50,7 +50,8 @@ window.__ModuleLoader__.load({
 
     const css = `
       .dsh-radio-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid rgba(76,141,255,.3);border-radius:999px;background:rgba(76,141,255,.08);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:11px;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease;width:fit-content;flex-shrink:0;}
-      .dsh-radio-pill-fixed{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:2147483000;box-shadow:0 4px 16px rgba(0,0,0,.4);background:rgba(20,20,24,.92);}
+      .dsh-radio-pill-fixed{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:2147483000;box-shadow:0 4px 16px rgba(0,0,0,.4);background:rgba(20,20,24,.92);cursor:grab;}
+      .dsh-radio-pill-fixed:active{cursor:grabbing;}
       .dsh-radio-pill:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-pill-logo{height:14px;width:auto;display:block;}
       .dsh-radio-pill-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-tertiary,#8a8a8a);}
@@ -199,6 +200,15 @@ window.__ModuleLoader__.load({
       });
       const [query, setQuery] = React.useState('');
       const [pos, setPos] = React.useState(null);
+      // Draggable pill: null = docked bottom-center (CSS default). Saved to localStorage.
+      const [pillPos, setPillPos] = React.useState(() => {
+        try {
+          const p = JSON.parse(localStorage.getItem('dsh-radio-pill-pos') || 'null');
+          if (p && isFinite(p.left) && isFinite(p.top)) return p;
+        } catch {}
+        return null;
+      });
+      const justDraggedRef = React.useRef(false);
       const [results, setResults] = React.useState(null);
       const [searching, setSearching] = React.useState(false);
       const [searchError, setSearchError] = React.useState(null);
@@ -570,6 +580,37 @@ window.__ModuleLoader__.load({
         }, 150);
       }
 
+      // Click-hold-drag to move the pill anywhere. A drag (moved >5px) never
+      // toggles the panel — justDraggedRef swallows the follow-up click.
+      function startDrag(e) {
+        if (e.button !== 0) return;
+        const el = pillRef.current;
+        if (!el) return;
+        e.preventDefault();
+        const startX = e.clientX, startY = e.clientY;
+        const r = el.getBoundingClientRect();
+        const offX = startX - r.left, offY = startY - r.top;
+        const last = {moved: false, left: 0, top: 0};
+        justDraggedRef.current = false;
+        const onMove = (ev) => {
+          if (!last.moved && Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) < 5) return;
+          last.moved = true;
+          justDraggedRef.current = true;
+          last.left = Math.min(window.innerWidth - 40, Math.max(0, ev.clientX - offX));
+          last.top = Math.min(window.innerHeight - 24, Math.max(0, ev.clientY - offY));
+          setPillPos({left: last.left, top: last.top});
+        };
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          if (last.moved) {
+            try { localStorage.setItem('dsh-radio-pill-pos', JSON.stringify({left: last.left, top: last.top})); } catch {}
+          }
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      }
+
       function play(url, name) {
         const a = audioRef.current;
         if (!a) return;
@@ -634,12 +675,15 @@ window.__ModuleLoader__.load({
           'aria-label': 'AMP Radio: ' + statusText,
           onClick: () => {
             try {
+              if (justDraggedRef.current) { justDraggedRef.current = false; return; }
               if (open) closePanel();
               else setOpen(true);
             } catch (e) {
               // Ignore
             }
           },
+          onMouseDown: startDrag,
+          style: pillPos ? {left: pillPos.left + 'px', top: pillPos.top + 'px', transform: 'none', bottom: 'auto'} : undefined,
         },
           h(AmpLogo, {size: 10}),
           loading ? h('span', {className: 'dsh-radio-pill-label dsh-radio-pill-loading'}, 'Connecting…') : null,
