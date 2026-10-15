@@ -492,22 +492,49 @@ window.__ModuleLoader__.load({
       }, [open, pos]);
 
       // Pill visualizer animation loop (small canvas in the pill).
+      // Self-healing: derives playing from the element too (React state can desync),
+      // resumes a suspended context, and paints static bars when the stream is
+      // cross-origin without CORS headers (analyser reads silence by spec).
       React.useEffect(() => {
-        if (!playing) return undefined;
+        const el = audioRef.current;
+        const elemPlaying = !!(el && !el.paused && el.src);
+        if (!playing && !elemPlaying) return undefined;
         let animId;
         let cancelled = false;
+        let flatFrames = 0;
         const start = requestAnimationFrame(() => {
           const canvas = pillCanvasRef.current;
           if (!canvas || cancelled) return;
           const ctx2d = canvas.getContext('2d');
           let { analyser: a } = ensureAudioContext();
           if (!a) return;
+          if (a.context && a.context.state === 'suspended') {
+            try { a.context.resume(); } catch {}
+          }
           const data = new Uint8Array(a.frequencyBinCount);
+          let flatFrames = 0;
 
           function draw() {
             if (cancelled) return;
             animId = requestAnimationFrame(draw);
             a.getByteFrequencyData(data);
+            let peak = 0;
+            for (let k = 0; k < data.length; k++) if (data[k] > peak) peak = data[k];
+            if (peak === 0 && ++flatFrames > 60) {
+              // Cross-origin stream without CORS: analyser is silent by spec.
+              // Paint static mid bars so the pill honestly shows "playing".
+              cancelAnimationFrame(animId);
+              const w = canvas.width;
+              const h = canvas.height;
+              ctx2d.clearRect(0, 0, w, h);
+              ctx2d.fillStyle = '#4c8dff';
+              for (let i = 0; i < 5; i++) {
+                const bh = h * 0.45;
+                ctx2d.fillRect(i * (w / 5) + 1, h - bh, w / 5 - 2, bh);
+              }
+              return;
+            }
+            if (peak > 0) flatFrames = 0;
             const w = canvas.width;
             const h = canvas.height;
             ctx2d.clearRect(0, 0, w, h);
