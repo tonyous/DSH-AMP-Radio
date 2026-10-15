@@ -510,9 +510,11 @@ window.__ModuleLoader__.load({
           const live = !!(el && !el.paused && el.src);
           if (!live) {
             ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+            if (canvas.style.display !== 'none') canvas.style.display = 'none';
             flatFrames = 0;
             return;
           }
+          if (canvas.style.display === 'none') canvas.style.display = '';
           if (!analyser) {
             const got = ensureAudioContext();
             analyser = got.analyser;
