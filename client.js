@@ -205,11 +205,26 @@ window.__ModuleLoader__.load({
       const [pillPos, setPillPos] = React.useState(() => {
         try {
           const p = JSON.parse(localStorage.getItem('dsh-radio-pill-pos') || 'null');
-          if (p && isFinite(p.left) && isFinite(p.top)) return p;
+          if (p && isFinite(p.left) && isFinite(p.top)
+              && p.left >= 0 && p.top >= 0
+              && p.left <= window.innerWidth - 40 && p.top <= window.innerHeight - 24) return p;
         } catch {}
         return null;
       });
       const justDraggedRef = React.useRef(false);
+      // Re-clamp a saved spot the viewport outgrows (resolution change / window move).
+      React.useEffect(() => {
+        const onResize = () => {
+          setPillPos(prev => {
+            if (!prev) return prev;
+            if (prev.left <= window.innerWidth - 40 && prev.top <= window.innerHeight - 24) return prev;
+            try { localStorage.removeItem('dsh-radio-pill-pos'); } catch {}
+            return null;
+          });
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+      }, []);
       const [results, setResults] = React.useState(null);
       const [searching, setSearching] = React.useState(false);
       const [searchError, setSearchError] = React.useState(null);
