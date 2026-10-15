@@ -50,6 +50,7 @@ window.__ModuleLoader__.load({
 
     const css = `
       .dsh-radio-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid rgba(76,141,255,.3);border-radius:999px;background:rgba(76,141,255,.08);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:11px;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease;width:fit-content;flex-shrink:0;}
+      .dsh-radio-pill-fixed{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:2147483000;box-shadow:0 4px 16px rgba(0,0,0,.4);background:rgba(20,20,24,.92);}
       .dsh-radio-pill:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.2));}
       .dsh-radio-pill-logo{height:14px;width:auto;display:block;}
       .dsh-radio-pill-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-tertiary,#8a8a8a);}
@@ -181,7 +182,7 @@ window.__ModuleLoader__.load({
       return { ctx: audioCtx, analyser };
     }
 
-    function RadioPill() {
+    function RadioPillInner() {
       const audioRef = React.useRef(null);
       const pillRef = React.useRef(null);
       const panelRef = React.useRef(null);
@@ -628,7 +629,7 @@ window.__ModuleLoader__.load({
 
       return h(React.Fragment, null,
         h('button', {
-          ref: pillRef, type: 'button', className: 'dsh-radio-pill',
+          ref: pillRef, type: 'button', className: 'dsh-radio-pill dsh-radio-pill-fixed',
           'aria-expanded': open, 'aria-haspopup': 'dialog',
           'aria-label': 'AMP Radio: ' + statusText,
           onClick: () => {
@@ -733,6 +734,21 @@ window.__ModuleLoader__.load({
           })
         ), document.body)
       );
+    }
+
+    // Body-portal wrapper: the pill must survive session switches, route changes and
+    // composer remounts (the reported bug was music playing with no pill: the old pill
+    // lived in the composer dock container that gets torn down). The slot registration
+    // below only anchors this stub; the real UI lives on document.body and cleans up
+    // its container on unmount.
+    function RadioPill() {
+      const el = React.useMemo(() => {
+        const node = document.createElement('div');
+        document.body.appendChild(node);
+        return node;
+      }, []);
+      React.useEffect(() => () => { el.remove(); }, [el]);
+      return createPortal(h(RadioPillInner, null), el);
     }
 
     function apply(ctx) {
