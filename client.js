@@ -501,11 +501,7 @@ window.__ModuleLoader__.load({
         if (!playing && !elemPlaying) return undefined;
         let animId;
         let cancelled = false;
-        let flatFrames = 0;
         const start = requestAnimationFrame(() => {
-          const canvas = pillCanvasRef.current;
-          if (!canvas || cancelled) return;
-          const ctx2d = canvas.getContext('2d');
           let { analyser: a } = ensureAudioContext();
           if (!a) return;
           if (a.context && a.context.state === 'suspended') {
@@ -517,6 +513,9 @@ window.__ModuleLoader__.load({
           function draw() {
             if (cancelled) return;
             animId = requestAnimationFrame(draw);
+            const canvas = pillCanvasRef.current;
+            if (!canvas) return;
+            const ctx2d = canvas.getContext('2d');
             a.getByteFrequencyData(data);
             let peak = 0;
             for (let k = 0; k < data.length; k++) if (data[k] > peak) peak = data[k];
