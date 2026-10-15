@@ -491,79 +491,75 @@ window.__ModuleLoader__.load({
         };
       }, [open, pos]);
 
-      // Pill visualizer animation loop (small canvas in the pill).
-      // Self-healing: derives playing from the element too (React state can desync),
-      // resumes a suspended context, and paints static bars when the stream is
-      // cross-origin without CORS headers (analyser reads silence by spec).
+      // Pill visualizer: one persistent loop for the component lifetime, driven by the
+      // ELEMENT itself (React `playing` state desynced and left the pill dead twice).
+      // Draws live bars, static bars for CORS-silent streams, clears when idle.
       React.useEffect(() => {
-        const el = audioRef.current;
-        const elemPlaying = !!(el && !el.paused && el.src);
-        if (!playing && !elemPlaying) return undefined;
         let animId;
         let cancelled = false;
-        const start = requestAnimationFrame(() => {
-          let { analyser: a } = ensureAudioContext();
-          if (!a) return;
-          if (a.context && a.context.state === 'suspended') {
-            try { a.context.resume(); } catch {}
+        let data = null;
+        let flatFrames = 0;
+        let analyser = null;
+        const tick = () => {
+          if (cancelled) return;
+          animId = requestAnimationFrame(tick);
+          const el = audioRef.current;
+          const canvas = pillCanvasRef.current;
+          if (!canvas) return;
+          const ctx2d = canvas.getContext('2d');
+          const live = !!(el && !el.paused && el.src);
+          if (!live) {
+            ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+            flatFrames = 0;
+            return;
           }
-          const data = new Uint8Array(a.frequencyBinCount);
-          let flatFrames = 0;
-
-          function draw() {
-            if (cancelled) return;
-            animId = requestAnimationFrame(draw);
-            const canvas = pillCanvasRef.current;
-            if (!canvas) return;
-            const ctx2d = canvas.getContext('2d');
-            a.getByteFrequencyData(data);
-            let peak = 0;
-            for (let k = 0; k < data.length; k++) if (data[k] > peak) peak = data[k];
-            if (peak === 0 && ++flatFrames > 60) {
-              // Cross-origin stream without CORS: analyser is silent by spec.
-              // Paint static mid bars so the pill honestly shows "playing".
-              cancelAnimationFrame(animId);
-              const w = canvas.width;
-              const h = canvas.height;
-              ctx2d.clearRect(0, 0, w, h);
-              ctx2d.fillStyle = '#4c8dff';
-              for (let i = 0; i < 5; i++) {
-                const bh = h * 0.45;
-                ctx2d.fillRect(i * (w / 5) + 1, h - bh, w / 5 - 2, bh);
-              }
-              return;
-            }
-            if (peak > 0) flatFrames = 0;
-            const w = canvas.width;
-            const h = canvas.height;
-            ctx2d.clearRect(0, 0, w, h);
-
-            const barCount = 5;
-            const barWidth = w / barCount;
-            const step = Math.floor(data.length / barCount);
-
-            for (let i = 0; i < barCount; i++) {
-              const v = data[i * step] / 255;
-              const barHeight = Math.max(2, v * h * 0.9);
-              const x = i * barWidth;
-              const y = h - barHeight;
-
-              const grad = ctx2d.createLinearGradient(0, y, 0, h);
-              grad.addColorStop(0, '#4c8dff');
-              grad.addColorStop(1, '#1a3a6e');
-              ctx2d.fillStyle = grad;
-              ctx2d.fillRect(x + 1, y, barWidth - 2, barHeight);
+          if (!analyser) {
+            const got = ensureAudioContext();
+            analyser = got.analyser;
+            if (!analyser) return;
+            if (analyser.context && analyser.context.state === 'suspended') {
+              try { analyser.context.resume(); } catch {}
             }
           }
-          draw();
-        });
-
+          const a = analyser;
+          if (!data || data.length !== a.frequencyBinCount) data = new Uint8Array(a.frequencyBinCount);
+          a.getByteFrequencyData(data);
+          let peak = 0;
+          for (let k = 0; k < data.length; k++) if (data[k] > peak) peak = data[k];
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx2d.clearRect(0, 0, w, h);
+          if (peak === 0) {
+            if (++flatFrames < 60) return;
+            ctx2d.fillStyle = '#4c8dff';
+            for (let i = 0; i < 5; i++) {
+              const bh = h * 0.45;
+              ctx2d.fillRect(i * (w / 5) + 1, h - bh, w / 5 - 2, bh);
+            }
+            return;
+          }
+          flatFrames = 0;
+          const barCount = 5;
+          const barWidth = w / barCount;
+          const step = Math.floor(data.length / barCount);
+          for (let i = 0; i < barCount; i++) {
+            const v = data[i * step] / 255;
+            const barHeight = Math.max(2, v * h * 0.9);
+            const x = i * barWidth;
+            const y = h - barHeight;
+            const grad = ctx2d.createLinearGradient(0, y, 0, h);
+            grad.addColorStop(0, '#4c8dff');
+            grad.addColorStop(1, '#1a3a6e');
+            ctx2d.fillStyle = grad;
+            ctx2d.fillRect(x + 1, y, barWidth - 2, barHeight);
+          }
+        };
+        animId = requestAnimationFrame(tick);
         return () => {
           cancelled = true;
-          cancelAnimationFrame(start);
-          if (animId) cancelAnimationFrame(animId);
+          cancelAnimationFrame(animId);
         };
-      }, [playing]);
+      }, []);
 
       // Debounced live search across the station directory.
       React.useEffect(() => {
@@ -713,13 +709,13 @@ window.__ModuleLoader__.load({
         },
           h(AmpLogo, {size: 10}),
           loading ? h('span', {className: 'dsh-radio-pill-label dsh-radio-pill-loading'}, 'Connecting…') : null,
-          playing ? h('canvas', {
+          h('canvas', {
             ref: (el) => { pillCanvasRef.current = el; },
             className: 'dsh-radio-pill-visualizer',
             width: 36,
             height: 14,
             'aria-hidden': true,
-          }) : null
+          })
         ),
         open && pos && createPortal(h('div', {
           ref: panelRef,
