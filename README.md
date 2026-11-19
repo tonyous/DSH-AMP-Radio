@@ -4,7 +4,7 @@ Internet radio with a live visualiser, and every chat stat in one tidy bar.
 Put the stats at the top of the chat, where the space is empty, or under the message box. Switch each one on or off.
 On a phone they fold into one clean line.
 
-![The AMP Bar at the top of a chat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/top-bar.png)
+![The AMP Bar at the top of a chat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/top-bar.png)
 
 **Website:** [get-amp.com](https://get-amp.com) · **Discord:** [discord.gg/hr3zfQmyVQ](https://discord.gg/hr3zfQmyVQ)
 
@@ -15,7 +15,7 @@ On a phone they fold into one clean line.
 | | |
 |---|---|
 | **AMP Bar** | All the little stats under the message box (speed, tokens, CPU, RAM, GPU, context and so on) in one bar, at the top of the chat or at the bottom. |
-| **Fits any screen** | What does not fit goes into a **+N** button. Nothing gets cut off, on a wide monitor or a phone. |
+| **Fits any screen** | Two neat lines in the header. What does not fit goes into a **+N** button. Nothing gets cut off, on a wide monitor or a phone. |
 | **Your choice of stats** | An on/off switch for every stat. Saved on your DeepSeek Harness, so your phone and your PC match. |
 | **AMP Radio** | Thousands of internet radio stations, search, favourites, and a visualiser that moves with the music. |
 | **AMP button where you want it** | In the bar next to the stats, or floating so you can drag it anywhere. |
@@ -34,16 +34,17 @@ Already have an older AMP Radio? Install again with the same link to update.
 
 ### The stats bar
 
-Open any chat. The stats sit next to the chat title.
+Open any chat. The stats sit next to the chat title, and on a second line beside the Chat / Trajectory tabs when there is room.
+Numbers update in place: the stats never jump around when a value changes.
 
 - Click **+N** to see the rest. Click **×** or press **Esc** to close it.
 - Clicking a stat works as before (for example, CPU opens its details).
 
-![The +N button opens every stat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/top-bar-open.png)
+![The +N button opens every stat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/top-bar-open.png)
 
 Prefer them under the message box? Choose **Bottom** in the settings. They wrap onto more lines instead of running off the screen.
 
-![The stats under the message box](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/bottom-bar.png)
+![The stats under the message box](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/bottom-bar.png)
 
 ### On a phone
 
@@ -51,7 +52,7 @@ The header has no spare room on a phone, so the stats sit under the message box 
 
 | Closed | Open |
 |---|---|
-| ![Phone, closed](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/phone.png) | ![Phone, open](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/phone-open.png) |
+| ![Phone, closed](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/phone.png) | ![Phone, open](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/phone-open.png) |
 
 ### Settings
 
@@ -66,7 +67,7 @@ Two places, same settings:
 | AMP button | **In the bar** (next to the stats) or **Floating** (drag it anywhere) |
 | Show | An on/off switch for each stat |
 
-![AMP Bar settings](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/settings.png)
+![AMP Bar settings](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/settings.png)
 
 ### The radio
 
@@ -80,7 +81,7 @@ Two places, same settings:
 | `Space` | Play / pause |
 | `Esc` | Close the panel |
 
-![AMP Radio](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/radio-panel.png)
+![AMP Radio](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.1/docs/screenshots/radio-panel.png)
 
 ## Which stats show up
 

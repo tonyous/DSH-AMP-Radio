@@ -932,10 +932,11 @@ window.__ModuleLoader__.load({
 .amp-bar-anchor{flex:1 1 auto;min-width:0;height:28px;display:flex;align-items:center;justify-content:flex-end;position:relative}
 .amp-bar-chip{flex:none;height:24px;border:0;border-radius:12px;padding:0 9px;margin-left:4px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;font-variant-numeric:tabular-nums}
 .amp-bar-chip:hover,.amp-bar-chip[aria-expanded=true]{color:var(--dsw-alias-label-primary)}
-html[data-amp-bar-live=top] [data-composer-card]+div{position:fixed!important;z-index:30;left:var(--amp-bar-x);top:var(--amp-bar-y);width:var(--amp-bar-w);height:28px;margin:0!important;padding:0!important;display:flex!important;flex-wrap:wrap!important;align-items:center;justify-content:flex-end;gap:0 2px;overflow:hidden;background:none}
+html[data-amp-bar-live=top] [data-composer-card]+div{position:fixed!important;z-index:30;left:var(--amp-bar-x);top:var(--amp-bar-y);width:var(--amp-bar-w);height:var(--amp-bar-h,28px);margin:0!important;padding:0!important;display:flex!important;flex-wrap:wrap!important;align-items:center;align-content:flex-start;justify-content:flex-end;gap:var(--amp-bar-gap,0px) 2px;overflow:hidden;background:none}
+html[data-amp-bar-live=top] [data-composer-card]+div [data-composer-stat],html[data-amp-bar-live=top] [data-composer-card]+div [data-hardware-stats]>*,html[data-amp-bar-live=top] [data-amp-stat],html[data-amp-bar-live=top] [data-composer-card]+div>span{height:28px;box-sizing:border-box}
 html[data-amp-bar-live=top] [data-composer-card]+div>*,html[data-amp-bar-live=top] [data-composer-card]+div [data-composer-stats],html[data-amp-bar-live=top] [data-composer-card]+div [data-hardware-stats],html[data-amp-bar-live=top] [data-composer-card]+div .dsh-hw-row{display:contents!important}
 html[data-amp-bar-live=top] [data-amp-over]{display:none!important}
-html[data-amp-bar-live=top][data-amp-bar-open] [data-composer-card]+div{left:auto;right:var(--amp-bar-r);top:calc(var(--amp-bar-y) + 34px);width:auto;max-width:min(620px,calc(100vw - 24px));height:auto;max-height:70vh;overflow:auto;justify-content:flex-start;padding:8px!important;gap:4px!important;border-radius:12px;background:var(--dsw-specific-menu,#1c1c1e);box-shadow:var(--dsw-elevation-prominent,0 8px 28px rgba(0,0,0,.45));z-index:1000}
+html[data-amp-bar-live=top][data-amp-bar-open] [data-composer-card]+div{left:auto;right:var(--amp-bar-r);top:calc(var(--amp-bar-y) + var(--amp-bar-h,28px) + 6px);width:auto;max-width:min(620px,calc(100vw - 24px));height:auto;max-height:70vh;overflow:auto;justify-content:flex-start;padding:8px!important;gap:4px!important;border-radius:12px;background:var(--dsw-specific-menu,#1c1c1e);box-shadow:var(--dsw-elevation-prominent,0 8px 28px rgba(0,0,0,.45));z-index:1000}
 html[data-amp-bar-live=top][data-amp-bar-open] [data-amp-over]{display:inline-flex!important}
 .amp-bar-settings{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:10px;font-size:13px}
 .amp-bar-settings h3{margin:0;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -951,6 +952,8 @@ html[data-amp-bar-live=top][data-amp-bar-open] [data-amp-over]{display:inline-fl
 html[data-amp-bar-live=compact] [data-composer-card]+div{display:flex!important;flex-wrap:wrap!important;justify-content:center;align-items:center;height:28px;overflow:hidden;position:relative;width:100%!important;max-width:100%!important;min-width:0!important;align-self:stretch;padding:0 var(--amp-bar-reserve) 0 4px!important;gap:0 2px;box-sizing:border-box}
 html[data-amp-bar-live=compact] [data-composer-card]+div>*,html[data-amp-bar-live=compact] [data-composer-card]+div [data-composer-stats],html[data-amp-bar-live=compact] [data-composer-card]+div [data-hardware-stats],html[data-amp-bar-live=compact] [data-composer-card]+div .dsh-hw-row,html[data-amp-bar-live=compact] .amp-stats{display:contents!important}
 html[data-amp-bar-live=compact] [data-amp-host=bottom]{position:absolute;right:4px;top:2px;margin:0}
+[data-amp-w]{justify-content:center!important;box-sizing:border-box}
+[data-composer-card]+div [data-composer-stat],[data-composer-card]+div [data-hardware-stats] button,[data-amp-stat]{font-variant-numeric:tabular-nums}
 html[data-amp-bar-live] [data-composer-card]+div [data-composer-stat],html[data-amp-bar-live] [data-composer-card]+div [data-composer-stat] *{flex-shrink:0;max-width:none!important;text-overflow:clip!important}
 html[data-amp-bar-live=compact] [data-amp-over]{display:none!important}
 html[data-amp-bar-live=compact][data-amp-bar-open] [data-composer-card]+div{height:auto;max-height:60vh;overflow:auto;padding:8px 8px 34px!important;gap:4px!important;border-radius:12px;background:var(--dsw-specific-menu,#1c1c1e)}
@@ -979,7 +982,7 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
     // any error leaves DSH's own layout untouched.
     function startBarController() {
       const root = document.documentElement;
-      let fixX = 0, fixY = 0, failed = 0, blocked = 0, topImpossible = false;
+      let fixX = 0, fixY = 0, failed = 0, blocked = 0, topImpossible = false, barLines = 1, barGap = 0;
       const dockOf = () => document.querySelector('[data-composer-card] + div');
       // DSH marks the message-box container "will-change: transform"; that captures fixed boxes and the chat's scroll
       // area then crops them. In Top mode only, that hint is switched off (and put back on release).
@@ -1000,7 +1003,7 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
         if (barOverflow) { barOverflow = 0; flowNotify(); }
       }
       // Marks the pills that do not fit on the first line ("+N"); returns the drawn pills.
-      function measure(dock, squeeze) {
+      function measure(dock, squeeze, extraLine = 0) {
         const items = [...dock.querySelectorAll(PILL_SEL)].filter(el => getComputedStyle(el).display !== 'none' || el.hasAttribute('data-amp-over'));
         items.forEach(el => el.removeAttribute('data-amp-over'));
         // Only real, drawn pills count: an empty wrapper (e.g. no context ring yet) has no size and sits at 0,0.
@@ -1009,7 +1012,7 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
         if (squeeze) { sized.forEach(el => el.setAttribute('data-amp-over', '')); hidden = sized.length; }
         else if (sized.length) {
           const first = Math.min(...sized.map(el => el.getBoundingClientRect().top));
-          for (const el of sized) if (el.getBoundingClientRect().top > first + 4) { el.setAttribute('data-amp-over', ''); hidden++; }
+          for (const el of sized) if (el.getBoundingClientRect().top > first + extraLine + 4) { el.setAttribute('data-amp-over', ''); hidden++; }
         }
         if (hidden !== barOverflow) { barOverflow = hidden; flowNotify(); }
         return sized;
@@ -1026,10 +1029,21 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
           if (p.scrollLeft > 0 && getComputedStyle(p).overflowX === 'hidden') p.scrollLeft = 0;
         }
       }
+      // Sticky widths: a pill may grow when its number gets longer but never shrinks back, so a changing value
+      // ("9%" -> "10%", "Model idle" -> "34 tok/s") does not push its neighbours around or flip the "+N" count.
+      function stabilize(dock) {
+        for (const el of dock.querySelectorAll(PILL_SEL)) {
+          const w = el.getBoundingClientRect().width;
+          if (!(w > 0)) continue;
+          const kept = Number(el.dataset.ampW || 0);
+          if (w > kept + 0.5) { el.dataset.ampW = String(Math.ceil(w)); el.style.minWidth = Math.ceil(w) + 'px'; }
+        }
+      }
       function tick() {
         if (barTopRetry) { barTopRetry = false; topImpossible = false; blocked = 0; }
         const dock = dockOf();
         if (!dock) return release(dock);
+        stabilize(dock);
         const anchor = [...document.querySelectorAll('.amp-bar-anchor')].find(a => a.getBoundingClientRect().width > 0);
         // The header only has room on wider screens; phones always get the compact line under the message box.
         const topOk = barSettings.position !== 'bottom' && !topImpossible && anchor && window.innerWidth >= 700;
@@ -1051,18 +1065,32 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
         const a = anchor.getBoundingClientRect();
         let chipW = 0;
         for (const c of anchor.children) { const r = c.getBoundingClientRect(); if (r.width > 0) chipW += r.width + 6; }
-        root.style.setProperty('--amp-bar-x', Math.round(a.left + fixX) + 'px');
+        // Two lines when the header has its second row (Chat / Trajectory tabs) with room on the right:
+        // line 1 next to the title, line 2 in the empty part of the tab row.
+        let x = a.left, w = a.width - chipW, gapY = 0, lines = 1;
+        const header = anchor.closest('header');
+        const tabs = header && (header.querySelector('[class*="viewsMoreAnchor"]') || header.querySelector('[class*="viewTabs"]'));
+        if (tabs) {
+          const tr = tabs.getBoundingClientRect();
+          const dy = (tr.top + tr.height / 2) - (a.top + a.height / 2);
+          const left = Math.max(a.left, tr.right + 16);
+          if (dy > 24 && a.right - chipW - left > 200) { x = left; w = a.right - chipW - left; gapY = Math.round(dy - 28); lines = 2; }
+        }
+        root.style.setProperty('--amp-bar-x', Math.round(x + fixX) + 'px');
         root.style.setProperty('--amp-bar-y', Math.round(a.top + (a.height - 28) / 2 + fixY) + 'px');
-        root.style.setProperty('--amp-bar-w', Math.max(0, Math.round(a.width - chipW)) + 'px');
+        root.style.setProperty('--amp-bar-w', Math.max(0, Math.round(w)) + 'px');
+        root.style.setProperty('--amp-bar-h', (lines === 2 ? 56 + gapY : 28) + 'px');
+        root.style.setProperty('--amp-bar-gap', gapY + 'px');
+        barLines = lines; barGap = gapY;
         root.style.setProperty('--amp-bar-r', Math.max(8, Math.round(window.innerWidth - a.right)) + 'px');
         setMode('top');
         if (barOpen) return;
         // An ancestor with a transform shifts "fixed" boxes: measure and correct once.
         const d = dock.getBoundingClientRect();
-        if (Math.abs(d.left - a.left) > 2 && d.width > 0) fixX += Math.round(a.left - d.left);
+        if (Math.abs(d.left - x) > 2 && d.width > 0) fixX += Math.round(x - d.left);
         const yWant = a.top + (a.height - 28) / 2;
         if (Math.abs(d.top - yWant) > 2 && d.height > 0) fixY += Math.round(yWant - d.top);
-        const sized = measure(dock, a.width < 90);
+        const sized = measure(dock, a.width < 90, barLines === 2 ? 28 + barGap : 0);
         // Fallback: if the first pill is not really drawn where it should be (something new crops it), use Bottom.
         const probe = sized.find(el => !el.hasAttribute('data-amp-over'));
         if (probe) {
@@ -1079,9 +1107,12 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
           }
         }
       }
+      const resetWidths = () => document.querySelectorAll('[data-amp-w]').forEach(el => { delete el.dataset.ampW; el.style.minWidth = ''; });
+      let lastW = window.innerWidth;
+      const onResize = () => { if (Math.abs(window.innerWidth - lastW) > 40) { lastW = window.innerWidth; resetWidths(); } run(); };
       const run = () => { try { tick(); failed = 0; } catch (e) { if (++failed === 3) console.warn('[amp-bar] layout paused:', e?.message || e); if (failed >= 3) release(dockOf()); } };
       const timer = setInterval(run, 350);
-      window.addEventListener('resize', run);
+      window.addEventListener('resize', onResize);
       const outside = e => {
         if (!barOpen) return;
         const t = e.target;
@@ -1092,7 +1123,7 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
       document.addEventListener('mousedown', outside, true);
       document.addEventListener('keydown', esc);
       return () => {
-        clearInterval(timer); window.removeEventListener('resize', run);
+        clearInterval(timer); window.removeEventListener('resize', onResize); resetWidths();
         document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', esc);
         release(dockOf()); delete root.dataset.ampBarPos;
       };
