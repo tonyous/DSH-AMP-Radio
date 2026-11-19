@@ -1,5 +1,9 @@
 {
   "screenshots": [
+    "docs/screenshots/top-bar.png",
+    "docs/screenshots/top-bar-open.png",
+    "docs/screenshots/phone.png",
+    "docs/screenshots/settings.png",
     "screenshot.png"
   ]
 }

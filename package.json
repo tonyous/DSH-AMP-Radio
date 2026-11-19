@@ -1,10 +1,19 @@
 {
   "name": "dsh-amp-radio",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "AMP radio player with live visualizer, station search, and favourites for DeepSeek Harness.",
+  "description": "AMP Radio and the AMP Bar for DeepSeek Harness: internet radio with a live visualiser, plus every chat stat in one tidy bar you can put at the top of the chat or under the message box, with an on/off switch for each.",
   "author": "AMP",
-  "keywords": ["radio", "streaming", "audio", "visualizer", "somafm"],
+  "keywords": [
+    "audio",
+    "mobile",
+    "radio",
+    "somafm",
+    "stats",
+    "status-bar",
+    "streaming",
+    "visualizer"
+  ],
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -12,13 +21,26 @@
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
-  "files": ["index.js", "client.js", "cordis.patch.yml", "locale/*.json", "icon.svg", "manifest.json", "README.md", "LICENSE"],
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
   },
   "license": "MIT"

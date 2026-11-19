@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
+  "version": "2.0.0",
   "name": "DSH-AMP-Radio",
-  "description": "AMP radio player with live visualizer, station search, and favourites.",
-  "updated": "2026-10-13"
+  "description": "AMP Radio plus the AMP Bar: every chat stat in one tidy bar, top or bottom, each one switchable, phone-friendly.",
+  "updated": "2026-11-19"
 }
