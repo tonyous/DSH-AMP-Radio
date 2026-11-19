@@ -4,7 +4,7 @@ Internet radio with a live visualiser, and every chat stat in one tidy bar.
 Put the stats at the top of the chat, where the space is empty, or under the message box. Switch each one on or off.
 On a phone they fold into one clean line.
 
-![The AMP Bar at the top of a chat](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/top-bar.png)
+![The AMP Bar at the top of a chat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/top-bar.png)
 
 **Website:** [get-amp.com](https://get-amp.com) · **Discord:** [discord.gg/hr3zfQmyVQ](https://discord.gg/hr3zfQmyVQ)
 
@@ -39,11 +39,11 @@ Open any chat. The stats sit next to the chat title.
 - Click **+N** to see the rest. Click **×** or press **Esc** to close it.
 - Clicking a stat works as before (for example, CPU opens its details).
 
-![The +N button opens every stat](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/top-bar-open.png)
+![The +N button opens every stat](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/top-bar-open.png)
 
 Prefer them under the message box? Choose **Bottom** in the settings. They wrap onto more lines instead of running off the screen.
 
-![The stats under the message box](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/bottom-bar.png)
+![The stats under the message box](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/bottom-bar.png)
 
 ### On a phone
 
@@ -51,7 +51,7 @@ The header has no spare room on a phone, so the stats sit under the message box 
 
 | Closed | Open |
 |---|---|
-| ![Phone, closed](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/phone.png) | ![Phone, open](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/phone-open.png) |
+| ![Phone, closed](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/phone.png) | ![Phone, open](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/phone-open.png) |
 
 ### Settings
 
@@ -66,7 +66,7 @@ Two places, same settings:
 | AMP button | **In the bar** (next to the stats) or **Floating** (drag it anywhere) |
 | Show | An on/off switch for each stat |
 
-![AMP Bar settings](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/settings.png)
+![AMP Bar settings](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/settings.png)
 
 ### The radio
 
@@ -80,7 +80,7 @@ Two places, same settings:
 | `Space` | Play / pause |
 | `Esc` | Close the panel |
 
-![AMP Radio](https://raw.githubusercontent.com/tonyous/DSH-AMP-Radio/master/docs/screenshots/radio-panel.png)
+![AMP Radio](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.0/docs/screenshots/radio-panel.png)
 
 ## Which stats show up
 
