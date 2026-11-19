@@ -1008,12 +1008,25 @@ html[data-amp-bar-live=compact][data-amp-bar-open] [data-amp-over]{display:inlin
         items.forEach(el => el.removeAttribute('data-amp-over'));
         // Only real, drawn pills count: an empty wrapper (e.g. no context ring yet) has no size and sits at 0,0.
         const sized = items.filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-        let hidden = 0;
-        if (squeeze) { sized.forEach(el => el.setAttribute('data-amp-over', '')); hidden = sized.length; }
+        if (squeeze) sized.forEach(el => el.setAttribute('data-amp-over', ''));
         else if (sized.length) {
-          const first = Math.min(...sized.map(el => el.getBoundingClientRect().top));
-          for (const el of sized) if (el.getBoundingClientRect().top > first + extraLine + 4) { el.setAttribute('data-amp-over', ''); hidden++; }
+          // A pill goes into "+N" when it is past the last allowed line OR would be cut off at either side
+          // (one pill wider than the space). Repeat until nothing changes: hiding one lets the others close up.
+          const box = dock.getBoundingClientRect(), cs = getComputedStyle(dock);
+          const left = box.left + parseFloat(cs.paddingLeft || 0) - 1, right = box.right - parseFloat(cs.paddingRight || 0) + 1;
+          for (let pass = 0; pass < 8; pass++) {
+            const live = sized.filter(el => !el.hasAttribute('data-amp-over'));
+            if (!live.length) break;
+            const first = Math.min(...live.map(el => el.getBoundingClientRect().top));
+            let changed = false;
+            for (const el of live) {
+              const r = el.getBoundingClientRect();
+              if (r.top > first + extraLine + 4 || r.left < left || r.right > right) { el.setAttribute('data-amp-over', ''); changed = true; }
+            }
+            if (!changed) break;
+          }
         }
+        const hidden = sized.filter(el => el.hasAttribute('data-amp-over')).length;
         if (hidden !== barOverflow) { barOverflow = hidden; flowNotify(); }
         return sized;
       }
