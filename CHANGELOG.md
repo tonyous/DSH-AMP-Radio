@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.6 (22 Nov 2026)
+- The Borrow page could open partly off the bottom of the window when the AMP button sits at the top. It now opens in the same place and size as the radio panel.
+
 ## 2.2.5 (22 Nov 2026)
 - Borrow my AI never uses the AI twice at once: a friend's message waits while anything else on the sharer's PC is using it.
 - Games are recognised from Steam, Epic, GOG, Battle.net, EA, Ubisoft, Riot, Xbox, Lutris, Heroic and Wine, on Linux,
