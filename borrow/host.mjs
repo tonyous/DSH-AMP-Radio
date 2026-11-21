@@ -7,7 +7,7 @@
 //         models. Leave: remove it and put their old default model back.
 // Every DSH service is optional (ctx.get at the use site): a DSH without one shows a plain message for that part,
 // and nothing here can stop the radio, the bar or DSH itself.
-import {fork, spawn} from 'node:child_process';
+import {fork, spawn, execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
@@ -41,7 +41,8 @@ const writeJSON = (f, v) => {
 // Opens a page in the person's own browser, from DSH's server on their own PC (so nobody has to click a link).
 export function openInBrowser(url) {
   try {
-    const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+    // Windows: the URL handler, not "cmd start" (cmd would split a link at & characters)
+    const [cmd, args] = process.platform === 'win32' ? ['rundll32', ['url.dll,FileProtocolHandler', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
     spawn(cmd, args, {detached: true, stdio: 'ignore', windowsHide: true}).on('error', () => {}).unref();
     return true;
   } catch { return false; }
@@ -57,16 +58,34 @@ export function askAdmin(tsPath, user) {
 
 // Is a game running on this PC? The owner's game guard writes a state file; on any Linux PC a Steam game runs from
 // steamapps/common. A friend's message never wakes the AI while a game runs.
-export function gameRunning() {
-  try { if (JSON.parse(readFileSync(join(process.env.HOME || '', '.local/state/game-guard.json'), 'utf8')).paused === true) return true; } catch {}
-  if (process.platform !== 'linux') return false;
-  try {
-    for (const pid of readdirSync('/proc')) {
-      if (!/^\d+$/.test(pid)) continue;
-      try { if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes('steamapps/common')) return true; } catch {}
-    }
-  } catch {}
-  return false;
+// Games run from these places on any PC: Steam, Epic, GOG, Battle.net, EA, Ubisoft, Riot, Xbox app, Lutris, Heroic,
+// Bottles, Wine/Proton prefixes. Checked at most every 10 s (cached), so it never costs anything while sharing.
+export const GAME_PLACES = /steamapps[\\/]common|[\\/]Epic Games[\\/]|[\\/]GOG Galaxy[\\/]Games|[\\/]GOG Games[\\/]|Battle\.net[\\/]|[\\/]EA Games[\\/]|Ubisoft Game Launcher[\\/]games|[\\/]Riot Games[\\/]|[\\/]XboxGames[\\/]|WindowsApps[\\/].*(Xbox|Microsoft\.\w+Game)|[\\/]Games[\\/]Heroic[\\/]|lutris[\\/]runners|[\\/]\.wine[^ ]*[\\/]drive_c[\\/].*\.exe|[\\/]pfx[\\/]drive_c[\\/].*\.exe|bottles[\\/]bottles[\\/].*\.exe/i;
+let gameCache = {at: 0, v: false};
+export function gameRunning(now = Date.now()) {
+  if (now - gameCache.at < 10_000) return gameCache.v;
+  let v = false;
+  try { if (JSON.parse(readFileSync(join(process.env.HOME || '', '.local/state/game-guard.json'), 'utf8')).paused === true) v = true; } catch {}
+  if (!v && process.platform === 'linux') {
+    try {
+      for (const pid of readdirSync('/proc')) {
+        if (!/^\d+$/.test(pid)) continue;
+        try { if (GAME_PLACES.test(readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' '))) { v = true; break; } } catch {}
+      }
+    } catch {}
+  }
+  if (!v && process.platform === 'win32') {
+    try {
+      const out = execFileSync('powershell', ['-NoProfile', '-Command', 'Get-Process | Where-Object {$_.Path} | Select-Object -ExpandProperty Path'],
+        {timeout: 5000, windowsHide: true, encoding: 'utf8'});
+      v = out.split(/\r?\n/).some(p => GAME_PLACES.test(p));
+    } catch {}
+  }
+  if (!v && process.platform === 'darwin') {
+    try { v = GAME_PLACES.test(execFileSync('ps', ['-axo', 'command'], {timeout: 5000, encoding: 'utf8'})); } catch {}
+  }
+  gameCache = {at: now, v};
+  return v;
 }
 
 // Unloading the AI from the graphics card the way this PC loads it: a model server run as a systemd user unit listed
@@ -210,7 +229,10 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     if (r.error) { host.problem = r.error; return status(); }
     host.localProviders = r.providers; host.models = r.asleep ? [] : r.models.map(m => m.id);
     host.ai = !r.asleep && r.models.length ? 'ready' : isGaming() ? 'game' : 'asleep';
-    if (!settings.hostName) { settings.hostName = st.user || 'Your friend'; save(); }
+    if (!settings.hostName) {
+      const pick = [st.user, (process.env.USER || process.env.USERNAME || '')].find(n => n && n.trim().length >= 3 && !/^(desktop|user|admin|root|pc)$/i.test(n)) || st.user || 'Your friend';
+      settings.hostName = pick.charAt(0).toUpperCase() + pick.slice(1); save();
+    }
     // the gate
     const child = forkImpl(GATE, [], {stdio: ['ignore', 'ignore', 'pipe', 'ipc'], execArgv: []});
     host.gate = child;
@@ -478,7 +500,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       settings.turnHours = clamp(b.turnHours, 0.25, 12, settings.turnHours);
       settings.dayHours = clamp(b.dayHours, 0.25, 24, settings.dayHours);
       if (typeof b.showPing === 'boolean') settings.showPing = b.showPing;
-      if (typeof b.hostName === 'string' && b.hostName.trim()) settings.hostName = b.hostName.trim().slice(0, 40);
+      if (typeof b.hostName === 'string' && b.hostName.trim()) { settings.hostName = b.hostName.trim().slice(0, 40); toGate({type: 'hostName', name: settings.hostName}); }
       save(); return ok(status());
     },
     '/api/amp-borrow/join': async req => { const b = await body(req); return ok(await joinInvite(b.invite)); },

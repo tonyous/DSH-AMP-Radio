@@ -37,43 +37,43 @@
     const ILink = () => h('svg', {viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', 'aria-hidden': true},
       h('circle', {cx: 6, cy: 12, r: 3}), h('circle', {cx: 18, cy: 12, r: 3}), h('path', {d: 'M9 12h6'}));
     const borrowCss = `
-.amp-borrow{padding:4px 14px 14px;overflow:auto;display:flex;flex-direction:column;gap:12px;font-size:13px;min-height:0}
-.amp-borrow h3{margin:0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a8a)}
-.amp-borrow section{display:flex;flex-direction:column;gap:8px}
-.amp-borrow-line{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
-.amp-borrow-line b{font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.amp-borrow-line b:last-child{text-align:right}
-.amp-borrow-wire{height:2px;width:56px;border-radius:1px;background:var(--dsw-alias-border-l2,rgba(128,128,128,.35));position:relative;overflow:hidden}
-.amp-borrow-wire[data-on]{background:var(--dsw-alias-state-business-primary,#4c8dff);transform-origin:left;animation:amp-borrow-draw .5s ease-out}
-.amp-borrow-wire[data-relay]{background:repeating-linear-gradient(90deg,var(--dsw-alias-state-business-primary,#4c8dff) 0 5px,transparent 5px 9px)}
-@keyframes amp-borrow-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.amp-borrow-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;background:var(--dsw-alias-label-tertiary,#8a8a8a)}
-.amp-borrow-dot[data-s=on]{background:var(--dsw-alias-state-success-primary,#57c785)}
-.amp-borrow-dot[data-s=wait]{background:#d29922}
-.amp-borrow-dot[data-s=stop]{background:#e5534b}
-.amp-borrow-meters{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.amp-borrow-meters div{display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:8px;background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.12));min-width:0}
-.amp-borrow-meters span{font-size:10px;color:var(--dsw-alias-label-tertiary)}
-.amp-borrow-meters b{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-.amp-borrow-btn{border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:10px;background:transparent;color:inherit;font:inherit;padding:7px 10px;cursor:pointer}
-.amp-borrow-btn:hover:not(:disabled){border-color:var(--dsw-alias-state-business-primary,#4c8dff)}
-.amp-borrow-btn:disabled{opacity:.45;cursor:default}
-.amp-borrow-stop{width:100%;border-color:#e5534b;color:#e5534b;font-weight:600}
-.amp-borrow-stop:hover{background:rgba(229,83,75,.1)}
-.amp-borrow-say{margin:0;font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary)}
-.amp-borrow-say[data-warn]{color:#d29922}
-.amp-borrow-field{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:8px;background:var(--dsw-alias-bg-l2,transparent);color:inherit;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:none}
-.amp-borrow-field:focus{outline:none;border-color:var(--dsw-alias-state-business-primary,#4c8dff)}
-.amp-borrow-row2{display:flex;gap:6px}.amp-borrow-row2>*{flex:1;min-width:0}
-.amp-borrow-big{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-business-primary,#4c8dff);background:rgba(76,141,255,.12);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s ease}
-.amp-borrow-big:hover:not(:disabled){background:rgba(76,141,255,.22)}
+.amp-borrow{--amp-b-fill:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14));--amp-b-fill-hover:color-mix(in srgb,var(--amp-b-fill) 100%,currentColor 8%);--amp-b-mute:var(--dsw-alias-label-secondary,#b4b4b4);padding:10px 16px 18px;min-height:236px;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.amp-borrow section{display:flex;flex-direction:column;gap:10px}
+.amp-borrow-line1{display:grid;grid-template-columns:30px 1fr;align-items:center;margin:0;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary,#e6e6e6)}
+.amp-borrow-press{cursor:pointer}
+.amp-borrow-mark{width:3px;height:14px;margin-left:6px;background:var(--amp-b-mute);border-radius:0}
+.amp-borrow-mark[data-s=on]{background:#45e5ac}.amp-borrow-mark[data-s=wait]{background:#b98ad6}.amp-borrow-mark[data-s=stop]{background:#f23f43}
+.amp-borrow-mark[data-s=none]{visibility:hidden}
+.amp-borrow-line1:has(.amp-borrow-mark[data-s=none]){color:var(--amp-b-mute)}
+.amp-borrow-big{display:flex;align-items:stretch;gap:6px;width:100%;height:44px;padding:0 14px 0 6px;border:0;border-radius:4px;background:var(--amp-b-fill);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:14px;font-weight:600;letter-spacing:0;text-align:left;cursor:pointer;transition:background .15s ease}
+.amp-borrow-big:hover:not(:disabled){background:var(--amp-b-fill-hover)}
+.amp-borrow-big:focus-visible{outline:2px solid #b98ad6;outline-offset:2px}
 .amp-borrow-big:disabled{opacity:.5;cursor:default}
-.amp-borrow-big-stop{border-color:#e5534b;background:rgba(229,83,75,.12);color:#ff7b72}
-.amp-borrow-big-stop:hover:not(:disabled){background:rgba(229,83,75,.22)}
-.amp-borrow-line1{display:flex;align-items:center;gap:8px;margin:0;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary,#e6e6e6)}
-.amp-borrow-small{align-self:center;border:0;background:none;color:var(--dsw-alias-label-tertiary,#8a8a8a);font:inherit;font-size:12px;cursor:pointer;padding:4px 6px}
+.amp-borrow-label{display:flex;align-items:center;padding-left:6px}
+.amp-borrow-big-stop{background:rgba(242,63,67,.14);color:#ff8a82}
+.amp-borrow-big-stop:hover:not(:disabled){background:rgba(242,63,67,.24)}
+.amp-borrow-stripes{display:flex;gap:2px;width:18px;flex:none}
+.amp-borrow-stripes i{width:3px;height:100%}
+.amp-borrow-stripes i:nth-child(1){background:#e07ab4}.amp-borrow-stripes i:nth-child(2){background:#b98ad6}
+.amp-borrow-stripes i:nth-child(3){background:#45e5ac}.amp-borrow-stripes i:nth-child(4){background:#2f8a68}
+.amp-borrow-stripes-stop i{background:#f23f43!important}
+.amp-borrow-busy .amp-borrow-stripes i{animation:amp-borrow-wave .9s ease-in-out infinite}
+.amp-borrow-busy .amp-borrow-stripes i:nth-child(2){animation-delay:.12s}.amp-borrow-busy .amp-borrow-stripes i:nth-child(3){animation-delay:.24s}.amp-borrow-busy .amp-borrow-stripes i:nth-child(4){animation-delay:.36s}
+.amp-borrow-busy:disabled{opacity:1;cursor:progress}
+@keyframes amp-borrow-wave{0%,100%{transform:scaleY(1)}40%{transform:scaleY(.35)}}
+@media (prefers-reduced-motion:reduce){.amp-borrow-busy .amp-borrow-stripes i{animation:none;opacity:.6}}
+.amp-borrow-small{align-self:flex-start;margin-left:30px;border:0;background:none;padding:2px 0;color:var(--amp-b-mute);font:inherit;font-size:12.5px;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px;cursor:pointer}
 .amp-borrow-small:hover{color:var(--dsw-alias-label-primary,#e6e6e6)}
-.amp-borrow-ping{align-self:flex-start;padding:0;font-variant-numeric:tabular-nums}
+.amp-borrow-meters{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.amp-borrow-meters div{display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:4px;background:var(--amp-b-fill);min-width:0}
+.amp-borrow-meters span{font-size:10px;color:var(--amp-b-mute)}
+.amp-borrow-meters b{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.amp-borrow-field{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:4px;background:transparent;color:inherit;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.amp-borrow-field:focus{outline:none;border-color:#b98ad6}
+.amp-borrow-friends{display:flex;flex-direction:column;gap:4px}
+.amp-borrow-friend{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:30px;font-size:12.5px;color:var(--amp-b-mute)}
+.amp-borrow-friend span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amp-borrow-friend .amp-borrow-small{margin-left:0}
 .amp-borrow-banner{display:flex;align-items:center;gap:8px;padding:5px 10px;margin:0 0 6px;border-radius:10px;font-size:12px;background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.12))}
 .amp-borrow-banner span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .amp-borrow-banner button{border:0;background:none;color:#e5534b;font:inherit;font-weight:600;cursor:pointer;padding:2px 4px}
@@ -81,8 +81,22 @@
 `;
 
     // One thing on screen at a time: one short line and one big button. Everything else happens by itself.
-    const Big = ({onClick, children, danger, disabled}) => h('button', {type: 'button', className: 'amp-borrow-big' + (danger ? ' amp-borrow-big-stop' : ''), disabled, onClick}, children);
-    const Line = ({children, dot}) => h('p', {className: 'amp-borrow-line1'}, dot ? h('span', {className: 'amp-borrow-dot', 'data-s': dot}) : null, h('span', null, children));
+    // AMP's own parts, nothing borrowed from a kit: the four Laguna stripes stand as the left edge of every main button,
+    // and every status mark is one stripe (mint = running, amber = waiting, red = stopped). One graphic edge, one text edge.
+    const Stripes = ({stop}) => h('span', {className: 'amp-borrow-stripes' + (stop ? ' amp-borrow-stripes-stop' : ''), 'aria-hidden': true}, h('i'), h('i'), h('i'), h('i'));
+    // Pressed and working: the four stripes run a short wave until the action is done (motion only on a press, never idle).
+    function Big({onClick, children, danger, disabled}) {
+      const [busy, setBusy] = React.useState(false);
+      const press = async e => {
+        setBusy(true); const t0 = Date.now();
+        try { await onClick?.(e); } finally { setTimeout(() => setBusy(false), Math.max(0, 450 - (Date.now() - t0))); }
+      };
+      return h('button', {type: 'button', className: 'amp-borrow-big' + (danger ? ' amp-borrow-big-stop' : '') + (busy ? ' amp-borrow-busy' : ''), disabled: disabled || busy, 'aria-busy': busy, onClick: press},
+        h(Stripes, {stop: danger}), h('span', {className: 'amp-borrow-label'}, children));
+    }
+    const plain = t => (typeof t === 'string' ? t.replace(/\.$/, '') : t);
+    const Line = ({children, mark, onClick, title}) => h('p', {className: 'amp-borrow-line1' + (onClick ? ' amp-borrow-press' : ''), onClick, title},
+      h('span', {className: 'amp-borrow-mark', 'data-s': mark || 'none'}), h('span', null, plain(children)));
     const Small = ({onClick, children}) => h('button', {type: 'button', className: 'amp-borrow-small', onClick}, children);
     async function readClip() { try { return (await navigator.clipboard.readText()) || ''; } catch { return null; } }
     function PasteBox({placeholder, onText}) {
@@ -90,10 +104,9 @@
         onPaste: e => { const t = e.clipboardData?.getData('text') || ''; if (t) { e.preventDefault(); onText(t); } },
         onKeyDown: e => { if (e.key === 'Enter' && e.currentTarget.value.trim()) onText(e.currentTarget.value); }});
     }
-
-    // The AI light, the same on both cards: green = running, amber = asleep (wakes by itself when used), red = paused for a game.
-    const AI_LIGHT = {ready: ['on', 'AI running'], asleep: ['wait', 'AI asleep · wakes when used'], game: ['stop', 'AI paused while gaming']};
-    const AiLight = ({state, who}) => { const l = AI_LIGHT[state]; return l ? h(Line, {dot: l[0]}, who ? `${who}'s ${l[1].charAt(0).toLowerCase() + l[1].slice(1)}` : l[1]) : null; };
+    // The AI light, the same on both cards: running, asleep (wakes by itself when used), paused for a game.
+    const AI_LIGHT = {ready: ['on', 'AI running'], asleep: ['wait', 'AI asleep, wakes when used'], game: ['stop', 'AI paused while gaming']};
+    const AiLight = ({state, who}) => { const l = AI_LIGHT[state]; return l ? h(Line, {mark: l[0]}, who ? `${who}'s ${l[1]}` : l[1]) : null; };
 
     function ShareSide({s, onOff}) {
       const host = s.host || {}, turn = host.live?.turn;
@@ -104,35 +117,51 @@
         setBusy(true);
         const r = await borrowCall('invite', {share: String(link || '').trim()});
         setBusy(false);
-        if (!r?.invite) { setMsg('That was not the Tailscale link. Copy it again, then press I copied it.'); setStage('copy'); return; }
+        if (!r?.invite) { setMsg('That was not the Tailscale link, copy it again'); setStage('copy'); return; }
         let copied = false; try { await navigator.clipboard.writeText(r.invite); copied = true; } catch {}
         setMsg(copied ? null : r.invite); setStage('done');
       };
       const copiedIt = async () => { const t = await readClip(); if (t === null) { setStage('box'); setMsg(null); } else makeInvite(t); };
-      let line, dot = 'on';
-      if (!host.sharing) { dot = 'wait'; line = host.step?.say || (host.problem && !/Stopped/.test(host.problem) ? host.problem : 'Getting ready…'); }
-      else if (turn) line = `${turn.friend} is using your AI.`;
-      else line = 'Sharing is on.';
+      const off = h(Small, {onClick: () => { onOff?.(); borrowCall('share', {on: false}); }}, 'Turn sharing off');
+      if (!host.sharing) return h('section', null,
+        h(Line, {mark: 'wait'}, host.step?.say || (host.problem && !/Stopped/.test(host.problem) ? host.problem : 'Getting ready')), off);
+      if (turn) return h('section', null,
+        h(Line, {mark: 'on'}, `${turn.friend} is using your AI`),
+        h('div', {className: 'amp-borrow-meters'},
+          h('div', null, h('span', null, 'Speed'), h('b', null, turn.replying ? `${turn.tps || 0}/s` : '–')),
+          h('div', null, h('span', null, 'In'), h('b', null, num(turn.tokIn))),
+          h('div', null, h('span', null, 'Out'), h('b', null, num(turn.tokOut))),
+          h('div', null, h('span', null, 'Left'), h('b', null, clock(turn.secondsLeft)))),
+        h(Big, {danger: true, onClick: () => borrowCall('stop', {})}, 'Force stop'));
       return h('section', null,
-        h(Line, {dot}, line),
-        host.sharing ? h(AiLight, {state: host.ai}) : null,
-        turn ? h(React.Fragment, null,
-          h('div', {className: 'amp-borrow-meters'},
-            h('div', null, h('span', null, 'Speed'), h('b', null, turn.replying ? `${turn.tps || 0}/s` : '–')),
-            h('div', null, h('span', null, 'In'), h('b', null, num(turn.tokIn))),
-            h('div', null, h('span', null, 'Out'), h('b', null, num(turn.tokOut))),
-            h('div', null, h('span', null, 'Left'), h('b', null, clock(turn.secondsLeft)))),
-          h(Big, {danger: true, onClick: () => borrowCall('stop', {})}, 'Force stop')) : null,
-        host.sharing && !turn ? (
-          stage === 'idle' ? h(Big, {onClick: () => { window.open(host.tsIP ? `https://login.tailscale.com/admin/machines/${host.tsIP}` : 'https://login.tailscale.com/admin/machines', '_blank', 'noopener'); setStage('copy'); }}, 'Invite a friend')
-          : stage === 'copy' ? h(React.Fragment, null, h(Line, null, msg || 'In Tailscale, press Share, then Copy link.'), h(Big, {disabled: busy, onClick: copiedIt}, 'I copied it'))
-          : stage === 'box' ? h(React.Fragment, null, h(Line, null, 'Paste the Tailscale link here.'), h(PasteBox, {placeholder: 'Paste here', onText: makeInvite}))
-          : h(React.Fragment, null,
-              h(Line, {dot: 'on'}, msg ? 'Send this to your friend:' : 'Invite copied. Paste it to your friend.'),
-              msg ? h('input', {id: 'amp-borrow-invite', className: 'amp-borrow-field', readOnly: true, value: msg, onFocus: e => e.currentTarget.select()}) : null,
-              h(Small, {onClick: () => { setStage('idle'); setMsg(null); }}, 'Invite someone else'))
-        ) : null,
-        h(Small, {onClick: () => { onOff?.(); borrowCall('share', {on: false}); }}, 'Turn sharing off'));
+        h(Line, {mark: 'on'}, 'Sharing is on'),
+        h(AiLight, {state: host.ai}),
+        stage === 'idle' ? h(React.Fragment, null,
+            h(Big, {onClick: () => { window.open(host.tsIP ? `https://login.tailscale.com/admin/machines/${host.tsIP}` : 'https://login.tailscale.com/admin/machines', '_blank', 'noopener'); setStage('copy'); }}, 'Invite a friend'),
+            h(Friends, {name: host.name}))
+        : stage === 'copy' ? h(React.Fragment, null, h(Line, null, msg || 'In Tailscale: Share, then Copy link'), h(Big, {disabled: busy, onClick: copiedIt}, 'I copied it'))
+        : stage === 'box' ? h(React.Fragment, null, h(Line, null, 'Paste the Tailscale link here'), h(PasteBox, {placeholder: 'Paste here', onText: makeInvite}))
+        : h(React.Fragment, null,
+            h(Line, null, msg ? 'Send this to your friend' : 'Invite copied, paste it to your friend'),
+            msg ? h('input', {id: 'amp-borrow-invite', className: 'amp-borrow-field', readOnly: true, value: msg, onFocus: e => e.currentTarget.select()}) : null,
+            h(Big, {onClick: () => { setStage('idle'); setMsg(null); }}, 'Invite someone else')),
+        off);
+    }
+
+    // Who can borrow, and your name as friends see it. One tap each.
+    function Friends({name}) {
+      const [list, setList] = React.useState([]);
+      const [edit, setEdit] = React.useState(false);
+      const load = async () => { const r = await borrowCall('friends'); setList((r?.friends || []).filter(f => !f.revoked && (f.login || f.inviteExp > Date.now()))); };
+      React.useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t); }, []);
+      const save = v => { if (v.trim()) borrowCall('settings', {hostName: v}); setEdit(false); };
+      return h('div', {className: 'amp-borrow-friends'},
+        edit ? h('input', {id: 'amp-borrow-myname', className: 'amp-borrow-field', autoFocus: true, defaultValue: name || '', placeholder: 'Your name',
+            onKeyDown: e => { if (e.key === 'Enter') save(e.currentTarget.value); if (e.key === 'Escape') setEdit(false); }, onBlur: e => save(e.currentTarget.value)})
+          : h('div', {className: 'amp-borrow-friend'}, h('span', null, `Friends see you as ${name || 'you'}`), h(Small, {onClick: () => setEdit(true)}, 'Change')),
+        list.map(f => h('div', {key: f.id, className: 'amp-borrow-friend'},
+          h('span', null, f.login ? f.name : `Invite from ${new Date(f.created).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}, not used yet`),
+          h(Small, {onClick: async () => { await borrowCall('remove', {friendId: f.id}); load(); }}, 'Remove'))));
     }
 
     function UseSide({s, onBack}) {
@@ -143,31 +172,30 @@
       const join = async text => { setErr(null); const r = await borrowCall('join', {invite: text}); if (r?.error) { setErr(r.error); setBox(false); } };
       const paste = async () => { const t = await readClip(); if (t === null) setBox(true); else join(t); };
       if (!f.host && !f.pending) return h('section', null,
-        h(Line, null, err || (f.step?.say && f.step.step !== 'ready' ? f.step.say : 'Copy the invite your friend sent, then press:')),
+        h(Line, {mark: err ? 'wait' : null}, err || (f.step?.say && f.step.step !== 'ready' ? f.step.say : "Copy your friend's invite first")),
         box ? h(PasteBox, {placeholder: 'Paste the invite here', onText: join}) : h(Big, {onClick: paste}, 'Paste invite'),
         onBack ? h(Small, {onClick: onBack}, 'Back') : null);
-      if (f.pending) return h('section', null, h(Line, {dot: 'wait'}, f.step?.say || 'Connecting…'), h(Small, {onClick: () => borrowCall('leave', {})}, 'Cancel'));
-      const where = st.path?.words || (st.connected ? 'Connected' : null);
-      const turnLine = {yours: 'Your turn.', waiting: `${f.host} is using it. Yours is next.`, host: `${f.host} is using it. Yours is next.`, other: 'Someone else is using it.', off: `${f.host} stopped sharing.`}[st.turn];
+      if (f.pending) return h('section', null, h(Line, {mark: 'wait'}, f.step?.say || 'Connecting'), h(Small, {onClick: () => borrowCall('leave', {})}, 'Cancel'));
+      const extra = st.connected ? [st.path?.words && st.path.words !== 'Connected' ? st.path.words : null, ping && Number.isFinite(st.pingMs) ? `${st.pingMs} ms` : null].filter(Boolean).join(' · ') : '';
+      const turnLine = {yours: 'Your turn', waiting: `${f.host} is using it, yours is next`, host: `${f.host} is using it, yours is next`, other: 'Someone else is using it', off: `${f.host} stopped sharing`}[st.turn];
       return h('section', null,
-        h(Line, {dot: st.turn === 'off' ? 'stop' : st.connected ? (st.turn === 'waiting' || st.turn === 'host' ? 'wait' : 'on') : 'wait'},
-          st.connected ? `Connected to ${f.host}.` : `Reconnecting to ${f.host}…`),
-        st.connected ? h(AiLight, {state: st.ai, who: f.host}) : null,
-        st.connected && (st.models?.length ? h(Line, null, turnLine || `New chats use ${f.host}'s AI.`) : null),
-        st.connected && where ? h('button', {type: 'button', className: 'amp-borrow-small amp-borrow-ping', title: 'Show or hide the ping',
+        h(Line, {mark: st.turn === 'off' ? 'stop' : st.connected ? 'on' : 'wait', title: 'Show or hide the ping',
           onClick: () => { const v = !ping; setPing(v); try { localStorage.setItem('amp-borrow-ping', v ? 'on' : 'off'); } catch {} }},
-          ping && Number.isFinite(st.pingMs) ? `${where} · ${st.pingMs} ms` : where) : null,
-        f.problem ? h(Line, null, f.problem) : null,
+          (st.connected ? `Connected to ${f.host}` : `Reconnecting to ${f.host}`) + (extra ? ` · ${extra}` : '')),
+        st.connected ? h(AiLight, {state: st.ai, who: f.host}) : null,
+        st.connected && st.models?.length ? h(Line, null, turnLine || `New chats use ${f.host}'s AI`) : null,
+        f.problem ? h(Line, {mark: 'wait'}, f.problem) : null,
         st.turn === 'yours' ? h(Big, {onClick: () => borrowCall('done', {})}, "I'm done") : null,
-        h(Small, {onClick: () => borrowCall('leave', {})}, 'Stop using this AI'));
+        st.turn === 'yours' ? h(Small, {onClick: () => borrowCall('leave', {})}, 'Stop using this AI')
+          : h(Big, {danger: true, onClick: () => borrowCall('leave', {})}, 'Stop using this AI'));
     }
 
     function BorrowView() {
       const [s, err] = useBorrow(BORROW_POLL_OPEN);
       const [pick, setPick] = React.useState(null);
-      if (!s && err === 'restart') return h('div', {className: 'amp-borrow'}, h(Line, {dot: 'wait'}, 'Restart DeepSeek Harness to finish. This page then works by itself.'));
-      if (!s) return h('div', {className: 'amp-borrow'}, h(Line, {dot: 'wait'}, err || 'One moment…'));
-      const sharing = pick !== 'off' && (s.host?.wish || s.host?.sharing);
+      if (!s && err === 'restart') return h('div', {className: 'amp-borrow'}, h(Line, {mark: 'wait'}, 'Restart DeepSeek Harness to finish, this page then works by itself'));
+      if (!s) return h('div', {className: 'amp-borrow'}, h(Line, {mark: 'wait'}, err || 'One moment'));
+      const sharing = s.host?.wish || s.host?.sharing;
       const using = s.friend?.host || s.friend?.pending;
       const side = sharing ? 'share' : using ? 'use' : pick;
       return h('div', {className: 'amp-borrow'},
@@ -184,7 +212,7 @@
       const host = s?.host;
       if (!host?.lock) return null;
       return h('div', {className: 'amp-borrow-banner', role: 'status'},
-        h('span', {className: 'amp-borrow-dot', 'data-s': 'wait'}),
+        h('span', {className: 'amp-borrow-mark', 'data-s': 'wait'}),
         h('span', null, `Your AI is lent to ${host.lockFriend || 'a friend'}.` + (host.waitingHere ? ' Your message waits until they are done.' : '')),
         h('button', {type: 'button', onClick: () => borrowCall('stop', {})}, 'Force stop'));
     }

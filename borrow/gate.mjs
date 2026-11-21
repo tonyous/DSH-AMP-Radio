@@ -76,6 +76,15 @@ export function createGate(options = {}) {
   // game), then waits for it, keeping the line alive. Every message waiting for the same model waits together.
   const wakes = new Map();   // model id -> {until, denied}
   const refused = e => e?.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED|fetch failed/i.test(String(e?.cause?.code || e?.message));
+  async function modelBusy(model) {
+    try {
+      const headers = model.upstream.apiKey ? {authorization: 'Bearer ' + model.upstream.apiKey} : {};
+      const r = await o.fetchImpl(model.upstream.baseURL.replace(/\/v1\/?$/, '').replace(/\/+$/, '') + '/slots', {headers, signal: AbortSignal.timeout(1500)});
+      if (!r.ok) return false;
+      const slots = await r.json();
+      return Array.isArray(slots) && slots.some(s => s?.is_processing === true);
+    } catch { return false; }        // no slot list (other servers) or asleep: not known to be busy
+  }
   async function waitAwake(model, signal) {
     let w = wakes.get(model.id);
     if (!w || w.until < now()) { w = {until: now() + L.wakeMs, denied: null}; wakes.set(model.id, w); send({type: 'wake', provider: model.provider, model: model.id}); }
@@ -299,6 +308,17 @@ export function createGate(options = {}) {
       if (turn && turn.friendId !== f.id) { finished = true; return reply.fail(503, SAY.busyOther, 'busy'); }
       if (!turn) startTurn(f);
     }
+    // Anything else on the host using this AI right now (Hermes, a script, another app, not only DSH)? Ask the model
+    // server itself: llama-style servers list their busy slots. Wait for it, so nobody's reply is ever cut or mixed.
+    if (await modelBusy(model)) {
+      waiting.add(f.id); broadcast();
+      const until = now() + L.hostWaitMs;
+      while (!ac.signal.aborted && now() < until && await modelBusy(model)) await new Promise(r => setTimeout(r, L.wakePollMs ?? 1000));
+      waiting.delete(f.id); broadcast();
+      if (ac.signal.aborted) { finished = true; return; }
+      if (now() >= until) { finished = true; return reply.fail(503, SAY.hostWaitTooLong, 'host_busy'); }
+    }
+    if (!turn) startTurn(f);
     const id = newId();
     turn.inflight.set(id, ac); clearTimeout(turn.idleT); clearTimeout(turn.dropT); turn.last = now();
     broadcast();
@@ -448,6 +468,7 @@ export function createGate(options = {}) {
     friends: () => friends.map(({fp, ...f}) => ({...f, login: f.login ? f.login.replace(/^(.).*(@.*)$/, '$1…$2') : null})),
     setModels,
     wakeDenied(modelId, reason) { const w = wakes.get(modelId); if (w) w.denied = reason; else wakes.set(modelId, {until: now() + 60_000, denied: reason}); },
+    setHostName(n) { if (typeof n === 'string' && n.trim()) { o.hostName = n.trim().slice(0, 40); broadcast(); } },
     setAi(state) { if (['ready', 'asleep', 'game'].includes(state) && state !== ai) { ai = state; broadcast(); } },
     setHostBusy(n) {
       hostBusy = Math.max(0, Number(n) || 0);
@@ -484,6 +505,7 @@ if (process.send && process.argv[1] && import.meta.url === pathToFileURL(process
         else if (m.type === 'hostBusy') gate.setHostBusy(m.n);
         else if (m.type === 'wakeDenied') gate.wakeDenied(m.model, m.reason);
         else if (m.type === 'ai') gate.setAi(m.state);
+        else if (m.type === 'hostName') gate.setHostName(m.name);
         else if (m.type === 'stop') { gate.forceStop(); reply({type: 'stopped', id: m.id}); }
         else if (m.type === 'resume') gate.resume();
         else if (m.type === 'release') gate.release();

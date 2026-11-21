@@ -98,27 +98,29 @@ Two places, same settings:
 
 ### Borrow my AI
 
-Lend the AI running on your PC to a friend's DeepSeek Harness, anywhere in the world, or use theirs. It works over
-[Tailscale](https://tailscale.com) (free), which both of you need installed and signed in.
+Lend the AI running on your PC to a friend's DeepSeek Harness, anywhere in the world, or use theirs. Their chats stay on
+their PC; only the thinking happens on yours. It works over [Tailscale](https://tailscale.com) (free); AMP sets it up for you.
 
-**Share yours**
-1. Click the **AMP** button, then the **link** button (two circles) at the top of the panel.
-2. Turn on **Share my AI**. The first time on Linux, the card shows one admin command to run once.
-3. Open **Invite a friend**: press **Open Tailscale**, press **Share** on this PC and copy the link, paste it into the card,
-   add your friend's name, then **Make invite** and **Copy invite**. Send them the code.
+Click the **AMP** button, then the **link** button (two circles) at the top of the panel.
 
-**Use a friend's**
-1. Open the same page, paste the code under **Use a friend's AI** and press **Connect**.
-2. If the card asks, sign in to Tailscale or press **Accept** on your friend's share, then **Check again**.
-3. Their AI is now in your model list as **Borrowed · (their name)**. Pick it and chat as usual.
+**Share yours:** press **Share my AI**, then **Invite a friend**. In the Tailscale page that opens, press **Share** and
+**Copy link**, then press **I copied it**. The invite is now copied: paste it to your friend.
 
-**What each side sees:** who is connected, direct or relayed, the ping (switch it off if you like), and whose turn it is.
+**Use a friend's:** copy the invite they sent and press **Paste invite**. New chats now use their AI.
+
+Everything else happens by itself: installing or signing in to Tailscale opens the right page and carries on when it is
+done, a lost connection reconnects, and closing and opening DeepSeek Harness on either side keeps you connected.
+
+| Light | Means |
+|---|---|
+| Green | The AI is running |
+| Amber | The AI is asleep and wakes by itself when your friend sends a message |
+| Red | The AI is paused while the sharer plays a game |
+
 While your friend is using your AI, your own messages to it wait until they are done (cloud models never wait), and you
-see their usage live. **Force stop** always ends it at once and closes the door.
-
-**Safe by design:** only the AI can be reached, never your files, shell or anything else on your PC. Every friend has their
-own invite, tied to their Tailscale account, which you can remove at any time. Turns end after a quiet moment, and there
-are time limits per turn and per day. Nothing anyone writes is saved; only usage numbers are kept, on your PC.
+see their usage live. **Force stop** always ends it at once. When they are done, the AI leaves your graphics card by
+itself. Only the AI can be reached, never your files or anything else on your PC; each friend has their own invite, and
+**Remove** takes it away. Nothing anyone writes is saved; only usage numbers are kept, on your PC.
 
 ## Which stats show up
 
@@ -145,6 +147,6 @@ MIT, see [LICENSE](./LICENSE).
 
 ## What's new
 
-See [CHANGELOG.md](CHANGELOG.md). Latest: **2.2.0** adds Borrow my AI.
+See [CHANGELOG.md](CHANGELOG.md). Latest: **2.2.5** makes Borrow my AI steadier and simpler.
 
 Want to change it? See [docs/DEVELOPING.md](docs/DEVELOPING.md).

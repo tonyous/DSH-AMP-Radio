@@ -13,10 +13,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SECRET = 'zebra-pancake-71';
 
 // ---- a pretend model server ---------------------------------------------------------------------------------------------
-const seen = []; let mode = 'ok'; let aborted = 0;
+const seen = []; let mode = 'ok'; let aborted = 0; let slotsBusy = false;
 const model = http.createServer(async (req, res) => {
   let raw = ''; for await (const c of req) raw += c;
   let body = null; try { body = JSON.parse(raw); } catch {}
+  if (req.url === '/slots') { res.writeHead(200, {'content-type': 'application/json'}); return res.end(JSON.stringify([{id: 0, is_processing: slotsBusy}])); }
   seen.push({path: req.url, auth: req.headers.authorization, body});
   let closed = false; res.on('close', () => { if (!res.writableEnded) { closed = true; aborted++; } });
   if (mode === 'error500') { res.writeHead(500); return res.end('boom'); }
@@ -161,6 +162,16 @@ gate.setHostBusy(1);
 r = await post('/v1/chat/completions', A.key, JSON.stringify({model: MODEL.id, messages: [{role: 'user', content: 'x'}]}));
 ok(r.status === 503, 'host busy for too long: the friend is told to try again', r.status);
 gate.setHostBusy(0);
+
+// something else on the host (Hermes, another app) is using the AI: the friend waits, then goes by itself
+slotsBusy = true;
+const p4 = post('/v1/chat/completions', A.key, chatBody()).then(async r => [r.status, await r.text()]);
+await sleep(250);
+ok(gate.status().waiting.includes('Sam') && seen.filter(x => x.path?.includes('chat')).length >= 0, 'another app is using the AI: the friend is shown as waiting');
+slotsBusy = false;
+const [s4, t4] = await p4;
+ok(s4 === 200 && t4.includes('[DONE]'), 'the other app finished: the friend\'s message went through by itself');
+gate.release();
 
 // the model is not there / answers badly
 const saved = MODEL.upstream.baseURL;
