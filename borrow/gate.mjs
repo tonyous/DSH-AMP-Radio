@@ -416,9 +416,14 @@ export function createGate(options = {}) {
     let path;
     try { path = new URL(req.url, 'http://gate').pathname.replace(/\/+$/, '') || '/'; } catch { return json(res, 400, openaiError(SAY.notHere, 'not_here')); }
     const route = ROUTES[`${req.method} ${path}`];
-    if (!route) { req.resume(); return json(res, 404, openaiError(SAY.notHere, 'not_here')); }
+    if (!route) { audit({event: 'refused', code: 'not_here', path: path.slice(0, 40)}); req.resume(); return json(res, 404, openaiError(SAY.notHere, 'not_here')); }
     const w = who(req);
-    if (w.error) { req.resume(); return json(res, w.error[0], openaiError(w.error[1], w.error[2])); }
+    if (w.error) {
+      // every refused knock is written down (the reason and the path, never a key or anything written), so a friend who
+      // cannot get in shows up on the host's side with the exact reason
+      audit({event: 'refused', code: w.error[2], path, identity: !!req.headers['tailscale-user-login']});
+      req.resume(); return json(res, w.error[0], openaiError(w.error[1], w.error[2]));
+    }
     if (paused && path !== '/amp/v1/hello' && path !== '/amp/v1/events') { req.resume(); return json(res, 503, openaiError(SAY.paused, 'stopped')); }
     w.friend.lastSeen = now();
     await route(req, res, w.friend);
