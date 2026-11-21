@@ -75,8 +75,13 @@
 .amp-borrow-friend span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .amp-borrow-friend .amp-borrow-small{margin-left:0}
 .amp-borrow-banner{display:flex;align-items:center;gap:8px;padding:5px 10px;margin:0 0 6px;border-radius:10px;font-size:12px;background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.12))}
-.amp-borrow-banner span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.amp-borrow-banner button{border:0;background:none;color:#e5534b;font:inherit;font-weight:600;cursor:pointer;padding:2px 4px}
+.amp-borrow-banner .amp-borrow-mark{flex:none;width:8px;height:8px;border-radius:50%;animation:amp-lent-pulse 2s ease-in-out infinite}
+@keyframes amp-lent-pulse{50%{opacity:.35}}
+.amp-borrow-banner .amp-lent-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amp-borrow-banner button{border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:2px 6px;border-radius:6px;opacity:.7}
+.amp-borrow-banner button:hover{opacity:1;background:rgba(128,128,128,.15)}
+.amp-borrow-banner button.amp-lent-stop{color:#e5534b;font-weight:600;opacity:1}
+.amp-borrow-banner.amp-lent-small{display:inline-flex;width:auto;cursor:pointer;padding:4px 10px}
 @media (prefers-reduced-motion:reduce){.amp-borrow-wire[data-on]{animation:none}}
 `;
 
@@ -220,8 +225,14 @@
       const [s] = useBorrow(BORROW_POLL_IDLE);
       const host = s?.host;
       if (!host?.lock) return null;
+      const [hidden, setHidden] = React.useState(() => { try { return localStorage.getItem('amp-lent-hidden') === '1'; } catch { return false; } });
+      const flip = v => { setHidden(v); try { localStorage.setItem('amp-lent-hidden', v ? '1' : '0'); } catch {} };
+      const who = host.lockFriend || 'a friend';
+      if (hidden) return h('div', {className: 'amp-borrow-banner amp-lent-small', role: 'button', title: 'Show', onClick: () => flip(false)},
+        h('span', {className: 'amp-borrow-mark', 'data-s': 'wait'}), h('span', null, `Lent to ${who}`));
       return h('div', {className: 'amp-borrow-banner', role: 'status'},
         h('span', {className: 'amp-borrow-mark', 'data-s': 'wait'}),
-        h('span', null, `Your AI is lent to ${host.lockFriend || 'a friend'}.` + (host.waitingHere ? ' Your message waits until they are done.' : '')),
-        h('button', {type: 'button', onClick: () => borrowCall('stop', {})}, 'Force stop'));
+        h('span', {className: 'amp-lent-text'}, `${who} is using your AI` + (host.waitingHere ? ' · your message waits' : '')),
+        h('button', {type: 'button', className: 'amp-lent-stop', onClick: () => borrowCall('stop', {})}, 'Force stop'),
+        h('button', {type: 'button', title: 'Hide', 'aria-label': 'Hide', onClick: () => flip(true)}, 'Hide'));
     }
