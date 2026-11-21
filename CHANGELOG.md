@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.10 (22 Nov 2026)
+- The "your AI is lent" line above the message box reads in full with a small pulsing dot (no more purple bar), and has
+  Hide: it shrinks to a small chip, click it to show the line again. Remembered.
+
 ## 2.2.9 (22 Nov 2026)
 - Borrow my AI never refuses a friend's agent: helpers working in parallel all go through (the AI queues them), and the
   per-minute limit is only a guard against a runaway loop (600). Seen live: parallel researchers were refused at 20 a minute.
