@@ -136,15 +136,16 @@
       return h('section', null,
         h(Line, {mark: 'on'}, 'Sharing is on'),
         h(AiLight, {state: host.ai}),
-        stage === 'idle' ? h(React.Fragment, null,
+        host.rules?.blocked ? h(React.Fragment, null,
+            h(Line, {mark: 'stop'}, 'Your Tailscale rules block friends'),
+            h(Line, null, 'Press the button, paste under "grants": [ and Save'),
+            h(Big, {onClick: async () => { try { await navigator.clipboard.writeText(host.rules.line); } catch {} window.open('https://login.tailscale.com/admin/acls/file', '_blank', 'noopener'); }}, 'Fix it in Tailscale'))
+        : stage === 'idle' ? h(React.Fragment, null,
             h(Big, {onClick: () => { window.open(host.tsIP ? `https://login.tailscale.com/admin/machines/${host.tsIP}` : 'https://login.tailscale.com/admin/machines', '_blank', 'noopener'); setStage('copy'); }}, 'Invite a friend'),
             h(Friends, {name: host.name}))
-        : stage === 'copy' ? h(React.Fragment, null, h(Line, null, msg || 'In Tailscale: Share, then Copy link'), h(Big, {disabled: busy, onClick: copiedIt}, 'I copied it'))
-        : stage === 'box' ? h(React.Fragment, null, h(Line, null, 'Paste the Tailscale link here'), h(PasteBox, {placeholder: 'Paste here', onText: makeInvite}))
         : h(React.Fragment, null,
-            h(Line, null, msg ? 'Send this to your friend' : 'Invite copied, paste it to your friend'),
-            msg ? h('input', {id: 'amp-borrow-invite', className: 'amp-borrow-field', readOnly: true, value: msg, onFocus: e => e.currentTarget.select()}) : null,
-            h(Big, {onClick: () => { setStage('idle'); setMsg(null); }}, 'Invite someone else')),
+            h(Line, null, 'In Tailscale: Share, Copy link, send it to your friend'),
+            h(Big, {onClick: () => setStage('idle')}, 'Done')),
         off);
     }
 
@@ -171,11 +172,12 @@
       const [ping, setPing] = React.useState(() => { try { return localStorage.getItem('amp-borrow-ping') !== 'off'; } catch { return true; } });
       const join = async text => { setErr(null); const r = await borrowCall('join', {invite: text}); if (r?.error) { setErr(r.error); setBox(false); } };
       const paste = async () => { const t = await readClip(); if (t === null) setBox(true); else join(t); };
+      React.useEffect(() => { if (!f.host && !f.pending && !f.step) join(''); }, []);   // look for a friend's AI at once
       if (!f.host && !f.pending) return h('section', null,
-        h(Line, {mark: err ? 'wait' : null}, err || (f.step?.say && f.step.step !== 'ready' ? f.step.say : "Copy your friend's invite first")),
-        box ? h(PasteBox, {placeholder: 'Paste the invite here', onText: join}) : h(Big, {onClick: paste}, 'Paste invite'),
+        h(Line, {mark: err ? 'wait' : null}, err || (f.step?.say && f.step.step !== 'ready' ? f.step.say : 'Copy the link your friend sent you')),
+        box ? h(PasteBox, {placeholder: 'Paste the link here', onText: join}) : h(Big, {onClick: paste}, 'Paste link'),
         onBack ? h(Small, {onClick: onBack}, 'Back') : null);
-      if (f.pending) return h('section', null, h(Line, {mark: 'wait'}, f.step?.say || 'Connecting'), h(Small, {onClick: () => borrowCall('leave', {})}, 'Cancel'));
+      if (f.pending) return h('section', null, h(Line, {mark: 'wait'}, f.step?.say || "Looking for your friend's AI"), h(Small, {onClick: () => borrowCall('leave', {})}, 'Cancel'));
       const extra = st.connected ? [st.path?.words && st.path.words !== 'Connected' ? st.path.words : null, ping && Number.isFinite(st.pingMs) ? `${st.pingMs} ms` : null].filter(Boolean).join(' · ') : '';
       const turnLine = {yours: 'Your turn', waiting: `${f.host} is using it, yours is next`, host: `${f.host} is using it, yours is next`, other: 'Someone else is using it', off: `${f.host} stopped sharing`}[st.turn];
       return h('section', null,

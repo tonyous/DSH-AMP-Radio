@@ -253,6 +253,19 @@ const E = g3.addFriend({name: 'E'}); clock += 25 * 3600_000;
 const e1 = await fetch(`http://127.0.0.1:${p3port}/v1/models`, {headers: H(E.key, 'e@example.com')});
 ok(e1.status === 401, 'an invite unused for over 24 hours: expired', e1.status);
 
+// the Tailscale share as the invite: no AMP key, the door's identity header is enough
+r = await fetch(base + '/amp/v1/hello', {headers: {'tailscale-user-login': 'newfriend@example.com'}});
+j = await r.json();
+ok(r.status === 200 && j.host === 'Alex', 'no AMP key, came through Tailscale\'s door: let in by the share', r.status);
+const nf = gate.friends().find(x => x.name === 'Newfriend');
+ok(!!nf, 'friend added by itself, named from their Tailscale account', gate.friends().map(x => x.name).join(','));
+gate.revokeFriend(nf.id);
+r = await fetch(base + '/amp/v1/hello', {headers: {'tailscale-user-login': 'newfriend@example.com'}});
+ok(r.status === 403, 'removed: stays out even through the share', r.status);
+r = await fetch(base + '/amp/v1/hello');
+ok(r.status === 401, 'no key and not through Tailscale: refused', r.status);
+ok(/refused/.test(readFileSync(join(dir, 'audit.log'), 'utf8')), 'refused knocks are written down');
+
 // revoke
 gate.revokeFriend(A.id);
 r = await fetch(base + '/v1/models', {headers: H(A.key)});

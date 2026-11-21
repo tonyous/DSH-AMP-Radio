@@ -25,10 +25,10 @@ export function createLink(options = {}) {
   const o = {invite: null, localKey: null, fetchImpl: globalThis.fetch, now: Date.now, notify: () => {},
     pathProbe: null, pingEveryMs: 15_000, backoff: [1000, 2000, 4000, 8000, 10_000], retries: [1000, 2000, 4000, 8000], ...options};
   const inv = o.invite;
-  if (!inv?.url || !inv?.key) throw new Error('no invite');
+  if (!inv?.url) throw new Error('no invite');
   const localKey = o.localKey || newKey();
   const door = inv.url.replace(/\/+$/, '');
-  const auth = {authorization: 'Bearer ' + inv.key};
+  const auth = inv.key ? {authorization: 'Bearer ' + inv.key} : {};     // no key: the Tailscale share is the invite
   const state = {connected: false, reachable: null, host: inv.host, turn: null, secondsLeft: null, paused: false,
     models: [], pingMs: null, path: null, problem: null, since: null};
   const send = m => { try { o.notify(m); } catch {} };

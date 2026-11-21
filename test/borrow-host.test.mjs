@@ -66,7 +66,7 @@ function fakeTs({state = 'Running', allowDoor = true} = {}) {
         up.on('error', () => res.destroy()); res.on('close', () => up.destroy()); req.pipe(up);
       });
       await new Promise(r => srv.listen(0, '127.0.0.1', r));
-      door = {port, srv}; t.doorsOpened++;
+      door = {port, srv}; t.doorsOpened++; t.doorUrl = `http://127.0.0.1:${srv.address().port}`;
       return {ok: true, port, url: `http://127.0.0.1:${srv.address().port}`};
     },
     closeDoor: async () => { if (door) { door.srv.closeAllConnections(); door.srv.close(); } const had = !!door; door = null; return {closed: true, port: had}; },
@@ -170,6 +170,17 @@ r = await chat().catch(() => chat()); ok(r.status === 200, 'friend borrows again
 const opens = hostTs.doorsOpened;
 await hostTs.api.closeDoor();
 ok(await until(async () => hostTs.doorsOpened > opens && (await call(host, 'status')).host.sharing, 5000), 'door lost: reopened by itself, still sharing');
+// a second friend with only the Tailscale link (no AMP code): their DSH finds the host by itself and borrows
+const f2Dsh = fakeDsh({providers: {}}, {provider: 'x', model: 'y'});
+const f2Ts = fakeTs(); const realStatus = f2Ts.api.status;
+f2Ts.api.status = async () => ({...(await realStatus()), peers: [{name: 'host-pc.t.ts.net', online: true, ips: ['100.64.0.1'], login: 'host@example.com', path: {kind: 'direct'}}]});
+const friend2 = createBorrow({ctx: f2Dsh.ctx, home: mkdtempSync(join(tmpdir(), 'amp-friend2-')), tailscale: f2Ts.api, ...quiet,
+  doorURL: (name, port) => (port === 8445 ? hostTs.doorUrl : 'http://127.0.0.1:9')});
+j = await call(friend2, 'join', {invite: 'https://login.tailscale.com/admin/invite/AbC123'});
+ok(await until(async () => !!(await call(friend2, 'status')).friend.host, 6000), 'only the Tailscale link pasted: the host is found and connected by itself');
+ok(await until(() => Object.keys(f2Dsh.rows['llm-pi-ai'].config.providers || {}).some(k => k.startsWith('amp-borrow-'))), 'its DSH lists the borrowed AI');
+await call(friend2, 'leave'); await friend2.dispose();
+
 // DSH restarts: sharing comes back by itself (decision 8)
 await host.dispose();
 ok(!(await host.status()).host.sharing, 'DSH closed: sharing ended with it');

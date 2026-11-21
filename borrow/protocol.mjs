@@ -24,6 +24,7 @@ export const DEFAULTS = Object.freeze({
 // Every sentence a person can see, in one place. Plain words, one message per problem.
 export const SAY = Object.freeze({
   badKey: 'This invite is not valid any more. Ask your friend for a new one.',
+  removed: 'Your friend removed you from their AI.',
   otherPerson: 'This invite belongs to someone else. Ask your friend for your own.',
   noIdentity: 'This only works through Tailscale. Open it from AMP in DSH.',
   expired: 'This invite has expired. Ask your friend for a new one.',
@@ -61,6 +62,9 @@ export function encodeInvite({host, url, key, exp, share = null}) {
   return `AMP1-${data}-${createHash('sha256').update(data).digest('hex').slice(0, 8)}`;
 }
 export function decodeInvite(text, now = Date.now()) {
+  // A Tailscale share link on its own is a whole invite too: AMP finds the shared PC by itself once it is accepted.
+  const tsLink = String(text ?? '').match(/https:\/\/login\.tailscale\.com\/[\w/?=&.-]{1,200}/);
+  if (tsLink && !/AMP1-/.test(String(text))) return {share: tsLink[0], url: null, key: null, host: null, exp: null};
   const m = String(text ?? '').replace(/\s+/g, '').match(/AMP1-([A-Za-z0-9_-]+)-([0-9a-f]{8})/);
   if (!m || createHash('sha256').update(m[1]).digest('hex').slice(0, 8) !== m[2]) throw new Error('That code is incomplete. Copy it again.');
   let j;

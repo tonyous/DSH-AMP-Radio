@@ -14,7 +14,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DEFAULTS, encodeInvite, decodeInvite, isShareLink} from './protocol.mjs';
 import {offerFromConfig, buildProvider, providerId, addProvider, removeProvider, restoreDefault, KEY_ENV, isLocalURL} from './provider.mjs';
-import {createTailscale, setupStep, freeDoorPort, pathWords} from './tailscale.mjs';
+import {createTailscale, setupStep, freeDoorPort, pathWords, DOOR_PORTS, ipAllowed} from './tailscale.mjs';
 import {createLink} from './link.mjs';
 
 const GATE = fileURLToPath(new URL('./gate.mjs', import.meta.url));
@@ -105,7 +105,7 @@ export async function unloadModels(ids) {
 
 export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl = fork, fetchImpl = globalThis.fetch,
   report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000, openURL = openInBrowser, admin = askAdmin, retryMs = 5000,
-  isGaming = gameRunning, unload = unloadModels, unloadAfterMs = 60_000, unloadAfterDropMs = 10 * 60_000, hostQuietMs = 10 * 60_000} = {}) {
+  doorURL = (name, port) => `https://${name}:${port}`, isGaming = gameRunning, unload = unloadModels, unloadAfterMs = 60_000, unloadAfterDropMs = 10 * 60_000, hostQuietMs = 10 * 60_000} = {}) {
   const shown = new Set();
   const openOnce = url => { if (url && !shown.has(url)) { shown.add(url); try { openURL(url); } catch {} } };
   const dir = join(home, 'amp-radio', 'borrow');
@@ -208,8 +208,23 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   function startSharing() { return (starting ??= startSharingOnce().finally(() => { starting = null; })); }
   // Every few seconds while sharing: the models, and is the door still there? Tailscale restarting, a network change or a
   // crash closes it; then sharing starts again by itself on the same port, so the friend's link reconnects on its own.
+  // Can friends actually reach the door? This PC's own Tailscale rules are read every minute: if other people's PCs are
+  // online here and none of them is let in on the door's port, the card offers the one line that fixes it.
+  let rulesAt = 0;
+  async function checkRules() {
+    if (!host.sharing || !host.door || Date.now() - rulesAt < 60_000) return;
+    rulesAt = Date.now();
+    const st = await tailscale.status(), src = await tailscale.doorSources?.(host.door.port);
+    if (!st || !src) { host.rules = null; return; }
+    const others = st.peers.filter(p => p.online && p.login && st.selfLogin && p.login !== st.selfLogin && p.ips?.[0]);
+    const blocked = others.filter(p => !ipAllowed(p.ips[0], src));
+    host.rules = others.length && blocked.length === others.length
+      ? {blocked: true, line: JSON.stringify({src: ['autogroup:shared', ...new Set(blocked.map(p => p.ips[0]))], dst: [st.ips?.[0]], ip: ['tcp:' + host.door.port]}) + ','}
+      : null;
+  }
   async function watch() {
     if (!host.sharing) return;
+    checkRules().catch(e => report('borrow rules', e));
     if (tailscale.doorOpen && !tailscale.doorOpen()) { report('borrow door', 'door gone, reopening'); await stopSharing({keepSetting: true}); return startSharing(); }
     return refresh();
   }
@@ -418,9 +433,23 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   let joinT = null, joinUntil = 0;
   async function joinInvite(text) {
     let inv;
-    try { inv = decodeInvite(text); } catch (e) { friend.step = null; return {...status(), error: e.message}; }
+    if (!String(text || '').trim()) inv = {url: null, key: null, host: null, share: null, exp: null};   // nothing pasted: just look
+    else try { inv = decodeInvite(text); } catch (e) { friend.step = null; return {...status(), error: e.message}; }
     friend.pending = inv; joinUntil = Date.now() + 30 * 60_000; friend.problem = null;
     return attemptJoin();
+  }
+  // Every PC this one can see over Tailscale is asked, on AMP's door ports, whether it shares an AI. Read-only, a few seconds.
+  async function discover(st) {
+    const peers = (st?.peers || []).filter(p => p.online && p.name);
+    const tries = peers.flatMap(p => DOOR_PORTS.map(port => doorURL(p.name, port)));
+    const hits = await Promise.all(tries.map(async url => {
+      try {
+        const r = await fetchImpl(url + '/amp/v1/hello', {signal: AbortSignal.timeout(4000)});
+        const j = r.ok ? await r.json() : null;
+        return j && j.protocol ? {url, host: String(j.host || 'Your friend').slice(0, 40)} : null;
+      } catch { return null; }
+    }));
+    return hits.find(Boolean) || null;
   }
   async function attemptJoin() {
     clearTimeout(joinT);
@@ -438,9 +467,16 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       if (step.step === 'login' || step.step === 'expired') openOnce(step.url || 'https://login.tailscale.com/');
       return again();
     }
+    // Only a Tailscale link (or nothing): look for a PC sharing its AI among the PCs this one can see.
+    if (!inv.url) {
+      const found = await discover(st);
+      if (found) { inv.url = found.url; inv.host = found.host; }
+      else if (inv.share) { friend.step = {step: 'accept', say: HOST_SAY.waitAccept, url: inv.share}; openOnce(inv.share); return again(); }
+      else { friend.pending = null; friend.step = {step: 'none', say: 'Paste the link your friend sent you'}; return status(); }
+    }
     // can this PC reach the host's door yet? if not, the share has not been accepted
     let reach = false;
-    try { const r = await fetchImpl(inv.url + '/amp/v1/hello', {headers: {authorization: 'Bearer ' + inv.key}, signal: AbortSignal.timeout(6000)}); reach = r.status !== 404; if (r.status === 401 || r.status === 403) { const j = await r.json().catch(() => null); friend.pending = null; friend.step = {step: 'bad', say: j?.error?.message || 'This invite is not valid any more. Ask your friend for a new one.'}; return {...status(), error: friend.step.say}; } }
+    try { const r = await fetchImpl(inv.url + '/amp/v1/hello', {headers: inv.key ? {authorization: 'Bearer ' + inv.key} : {}, signal: AbortSignal.timeout(6000)}); reach = r.status !== 404; if (r.status === 401 || r.status === 403) { const j = await r.json().catch(() => null); friend.pending = null; friend.step = {step: 'bad', say: j?.error?.message || 'This invite is not valid any more. Ask your friend for a new one.'}; return {...status(), error: friend.step.say}; } }
     catch { reach = false; }
     if (!reach) { friend.step = {step: 'accept', say: HOST_SAY.waitAccept, url: inv.share}; openOnce(inv.share); return again(); }
     friend.pending = null; friend.step = null;
@@ -474,7 +510,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   // ---- what the card shows ------------------------------------------------------------------------------------------
   function status() {
     return {
-      host: {sharing: host.sharing, wish: !!settings.sharing, ai: host.ai || null, tsIP: host.tsIP || null, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
+      host: {sharing: host.sharing, wish: !!settings.sharing, ai: host.ai || null, rules: host.rules || null, tsIP: host.tsIP || null, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
         name: settings.hostName, models: host.models, lock: host.lock, lockFriend: host.lockFriend, waitingHere: host.waitingHere,
         live: host.state, settings: {idleMin: settings.idleMin, turnHours: settings.turnHours, dayHours: settings.dayHours, showPing: settings.showPing}},
       friend: friend.saved ? {host: friend.saved.invite.host, providerId: friend.saved.providerId, state: friend.state, step: friend.step,
@@ -492,7 +528,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     '/api/amp-borrow/release': async () => { await toGate({type: 'release'}); return ok(status()); },
     '/api/amp-borrow/invite': async req => { const b = await body(req); return ok(await invite(b.name, b.share)); },
     '/api/amp-borrow/friends': async () => ok({friends: (await toGate({type: 'friends'}, true))?.friends || []}),
-    '/api/amp-borrow/remove': async req => { const b = await body(req); await toGate({type: 'forget', friendId: String(b.friendId || '')}); return ok(status()); },
+    '/api/amp-borrow/remove': async req => { const b = await body(req); await toGate({type: 'revoke', friendId: String(b.friendId || '')}); return ok(status()); },
     '/api/amp-borrow/settings': async req => {
       const b = await body(req);
       const clamp = (v, lo, hi, d) => (Number.isFinite(Number(v)) ? Math.min(hi, Math.max(lo, Number(v))) : d);

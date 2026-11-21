@@ -64,6 +64,7 @@ export function readStatus(text) {
   return {
     state: d.BackendState || 'NoState', version: d.Version || '', authURL: d.AuthURL || null,
     name: String(self.DNSName || '').replace(/\.$/, ''), ips: self.TailscaleIPs || [], os: self.OS || '',
+    selfLogin: users[self.UserID]?.LoginName || null,
     user: String(users[self.UserID]?.DisplayName || String(users[self.UserID]?.LoginName || '').split('@')[0] || '').slice(0, 40),
     keyExpiry: self.KeyExpiry ? Date.parse(self.KeyExpiry) : null, https: Array.isArray(d.CertDomains) && d.CertDomains.length > 0,
     health: Array.isArray(d.Health) ? d.Health : [], peers,
@@ -99,6 +100,27 @@ export function pathWords(p) {
 }
 export function servePorts(text) {
   try { return Object.keys(JSON.parse(text)?.TCP || {}).map(Number).filter(Number.isFinite); } catch { return null; }
+}
+// Which addresses this PC's own Tailscale rules let in on a port (from `tailscale debug netmap`, read-only).
+export function allowedSources(netmapText, port) {
+  let d; try { d = JSON.parse(netmapText); } catch { return null; }
+  const out = [];
+  for (const r of d?.PacketFilter || []) {
+    const hit = (r.Dsts || []).some(x => !x.Ports || (x.Ports.First <= port && port <= x.Ports.Last));
+    if (hit) out.push(...(r.Srcs || []));
+  }
+  return out;
+}
+export function ipAllowed(ip, sources) {
+  if (!ip || !sources) return true;                       // cannot tell: do not cry wolf
+  const n = s => s.split('.').reduce((a, b) => (a << 8) + Number(b), 0) >>> 0;
+  return sources.some(src => {
+    if (src === '*' || src === '0.0.0.0/0') return true;
+    const [net, bits = '32'] = src.split('/');
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(net) || !/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return false;
+    const mask = Number(bits) === 0 ? 0 : (~0 << (32 - Number(bits))) >>> 0;
+    return (n(ip) & mask) === (n(net) & mask);
+  });
 }
 export function freeDoorPort(taken, wanted = DOOR_PORTS) { return wanted.find(p => !taken.includes(p)) ?? null; }
 
@@ -156,6 +178,7 @@ export function createTailscale({platform = process.platform, run = null, spawnI
       const r = await ts(['ping', '--c', '1', '--timeout', '5s', String(ip)], 12_000);
       return readPing(r.stdout + '\n' + r.stderr);
     },
+    async doorSources(port) { const r = await ts(['debug', 'netmap'], 10_000); return r.code === 0 ? allowedSources(r.stdout, port) : null; },
     async doorPorts() { const r = await ts(['serve', 'status', '--json'], 8000); return r.code === 0 ? (servePorts(r.stdout || '{}') ?? []) : []; },
     async clearDoor(port) {                       // a door this plugin left behind (DSH was killed); only that port
       if (!port || door?.port === port) return false;

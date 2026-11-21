@@ -197,7 +197,21 @@ export function createGate(options = {}) {
   function who(req) {
     const h = String(req.headers.authorization || '');
     const key = /^bearer\s+/i.test(h) ? h.replace(/^bearer\s+/i, '').trim() : '';
-    if (!key) return {error: [401, SAY.badKey, 'bad_key']};
+    if (!key) {
+      // No AMP key: the Tailscale share is the invite. Only Tailscale's door can add this header, and only people this PC
+      // is shared with can reach the door, so the login is proof enough. A removed friend stays removed.
+      const login = String(req.headers['tailscale-user-login'] || '').trim().toLowerCase();
+      if (o.openToShared === false || !login) return {error: [401, SAY.badKey, 'bad_key']};
+      let f = friends.find(x => x.login === login);
+      if (f?.revoked) return {error: [403, SAY.removed, 'removed']};
+      if (!f) {
+        const n = login.split('@')[0].replace(/[._-]+/g, ' ').trim();
+        f = {id: newId(), name: (n.charAt(0).toUpperCase() + n.slice(1)).slice(0, 40) || 'Friend', fp: '', login, keyless: true,
+          created: now(), firstUsed: now(), expires: null, revoked: false, day: null};
+        friends.push(f); saveFriends(); audit({friend: f.id, event: 'joined through the Tailscale share'});
+      }
+      return {friend: f};
+    }
     const fp = fingerprint(key);
     const f = friends.find(x => sameFingerprint(x.fp, fp));
     if (!f || f.revoked) return {error: [401, SAY.badKey, 'bad_key']};
