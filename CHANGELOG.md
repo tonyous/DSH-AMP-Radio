@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.8 (22 Nov 2026)
+- AMP keeps itself up to date: new releases install through DeepSeek Harness's own plugin manager, never while a friend is
+  borrowing, while any chat runs or during a game. If DSH needs a restart to finish, the AMP panel says so in one line.
+
 ## 2.2.7 (22 Nov 2026)
 - The Tailscale share link is the invite: share your PC in Tailscale and send your friend that link. Their DSH finds your
   shared AI by itself (it even looks before they paste anything). Older AMP1- invites still work.

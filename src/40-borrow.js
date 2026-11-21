@@ -192,15 +192,22 @@
           : h(Big, {danger: true, onClick: () => borrowCall('leave', {})}, 'Stop using this AI'));
     }
 
+    function useUpdateNote() {
+      const [step, setStep] = React.useState(null);
+      React.useEffect(() => { let alive = true; const run = () => fetch('/api/amp-update/status', {credentials: 'same-origin', cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(j => { if (alive) setStep(j?.step || null); }).catch(() => {}); run(); const t = setInterval(run, 60_000); return () => { alive = false; clearInterval(t); }; }, []);
+      return step === 'restart' ? 'Restart DeepSeek Harness to finish updating AMP' : null;
+    }
     function BorrowView() {
       const [s, err] = useBorrow(BORROW_POLL_OPEN);
       const [pick, setPick] = React.useState(null);
+      const updateNote = useUpdateNote();
       if (!s && err === 'restart') return h('div', {className: 'amp-borrow'}, h(Line, {mark: 'wait'}, 'Restart DeepSeek Harness to finish, this page then works by itself'));
       if (!s) return h('div', {className: 'amp-borrow'}, h(Line, {mark: 'wait'}, err || 'One moment'));
       const sharing = s.host?.wish || s.host?.sharing;
       const using = s.friend?.host || s.friend?.pending;
       const side = sharing ? 'share' : using ? 'use' : pick;
       return h('div', {className: 'amp-borrow'},
+        updateNote ? h(Line, {mark: 'wait'}, updateNote) : null,
         side === 'share' ? h(ShareSide, {s, onOff: () => setPick(null)})
         : side === 'use' ? h(UseSide, {s, onBack: using ? null : () => setPick(null)})
         : h(React.Fragment, null,

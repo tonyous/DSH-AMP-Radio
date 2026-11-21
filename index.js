@@ -136,7 +136,28 @@ export function apply(ctx) {
     path: '/api/amp-bar/stats', methods: ['GET'], requestBody: 'buffered',
     fetch: async () => json({cpu: cpuPercent(), ram: await memory(), gpu: await gpu()}),
   }), 'amp-bar: stats route');
-  applyBorrow(ctx);
+  const borrowState = applyBorrow(ctx);
+  applyAutoUpdate(ctx, borrowState);
+}
+
+// 2.2.8: AMP keeps itself up to date through DSH's own plugin manager, never at a bad moment (update.mjs).
+function applyAutoUpdate(ctx, borrowState) {
+  let updater = null;
+  ctx.effect(() => {
+    let version = '0.0.0';
+    try { version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version; } catch {}
+    import('./update.mjs').then(async m => {
+      let gaming = () => false;
+      try { gaming = (await import('./borrow/host.mjs')).gameRunning; } catch {}
+      updater = m.createUpdater({ctx, home: HOME, version, borrowState, isGaming: gaming,
+        report: (where, e) => reportProblem('update', where + ': ' + String(e?.message || e)).catch(() => {})});
+    }).catch(e => console.warn('[amp-update] off:', e?.message || e));
+    return () => updater?.stop();
+  }, 'amp: keep itself up to date');
+  try {
+    ctx.effect(() => ctx.connection.fetch.register({path: '/api/amp-update/status', methods: ['GET'], requestBody: 'buffered',
+      fetch: async () => json(updater ? updater.state() : {step: 'starting'})}), 'amp-update: status');
+  } catch {}
 }
 
 // 2.2: Borrow my AI. Its code loads on first use (or at start when sharing / borrowing was on), inside its own try, so a
@@ -163,6 +184,7 @@ function applyBorrow(ctx) {
     if (on) get().catch(e => console.warn('[amp-borrow] start:', e?.message || e));
     return () => { Promise.resolve(borrow?.dispose()).catch(() => {}); };
   }, 'amp-borrow: start and stop with DSH');
+  return () => { try { return borrow?.status() ?? null; } catch { return null; } };
 }
 async function reportProblem(where, message) {
   const line = [new Date().toISOString(), 'borrow', String(where).slice(0, 60), String(message).replace(/\s+/g, ' ').slice(0, 300)].join(' | ');
