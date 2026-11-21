@@ -1,6 +1,15 @@
 # Changelog
 
-## 2.2.0 (not released)
+## 2.2.1 (not released)
+- Borrow my AI is one button at a time: Share my AI or Use a friend's AI, then one short line and one button.
+- It finishes by itself: Tailscale missing or signed out, the share not accepted yet, the admin password (a normal password
+  window on Linux). Each page opens once; nothing to press again.
+- Invites need no name (your friend's name fills in by itself) and are copied for you. Paste invite reads the copied code.
+- New chats use the borrowed AI straight away; Stop using puts your own model back.
+- It heals itself: a message is retried through a short drop or a bad line, and a lost Tailscale door or helper is
+  reopened within seconds on the same address, so friends reconnect on their own.
+
+## 2.2.0 (22 Nov 2026)
 - **Borrow my AI**: a new page in the AMP panel (the link button in its header). Share my AI lends the AI running on this PC
   to a friend's DeepSeek Harness over Tailscale; Use a friend's AI borrows theirs. Only the AI is reachable, never the PC:
   one door for one port, a key per friend tied to their Tailscale account, limits, and a Force stop that always works.

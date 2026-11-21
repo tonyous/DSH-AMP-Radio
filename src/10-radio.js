@@ -88,7 +88,7 @@
       .dsh-radio-empty{padding:14px;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-align:center;}
       .dsh-radio-visualizer{position:absolute;bottom:0;left:0;width:100%;height:60px;display:block;padding:0;background:transparent;pointer-events:none;z-index:10;}
       .dsh-radio-pill-visualizer{display:block;flex-shrink:0;margin-left:6px;}
-      .dsh-radio-title-link{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;transition:color .15s ease;display:flex;align-items:center;}
+      .dsh-radio-title-link{white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;transition:color .15s ease;display:flex;align-items:center;}
       .dsh-radio-title-link:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
       .dsh-radio-title-discord{color:var(--dsw-alias-label-tertiary,#8a8a8a);display:flex;align-items:center;transition:color .15s ease;}
       .dsh-radio-title-discord:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}

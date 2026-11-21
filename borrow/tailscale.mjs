@@ -24,17 +24,17 @@ export function knock(url, timeout = 3000) {
 export const MIN_VERSION = '1.86.0';          // peer relays and today's serve flags
 export const DOOR_PORTS = [8445, 8446, 8447, 10443, 9443];
 export const TS_SAY = Object.freeze({
-  missing: "Tailscale isn't on this PC yet. Install it and I'll carry on.",
-  old: 'Tailscale needs an update first.',
-  stopped: "Tailscale is asleep. Open it and I'll carry on.",
-  login: "Sign in to Tailscale in the tab that just opened. I'll carry on by myself.",
-  machineAuth: 'Your Tailscale account needs to approve this PC. Open the Tailscale admin page and approve it.',
-  expired: 'Tailscale wants you to sign in again. It does this twice a year.',
+  missing: "Install Tailscale from the page that just opened.",
+  old: 'Update Tailscale from the page that just opened.',
+  stopped: 'Open Tailscale.',
+  login: 'Sign in to Tailscale in the page that just opened.',
+  machineAuth: 'Approve this PC in the Tailscale page that just opened.',
+  expired: 'Sign in to Tailscale again in the page that just opened.',
   expiringSoon: days => `Tailscale will ask you to sign in again in ${days} day${days === 1 ? '' : 's'}.`,
-  operator: 'One admin step, once, so AMP can open and close its own door.',
-  https: 'One Tailscale switch to turn on: secure addresses. I have opened the page.',
-  doorFailed: "Tailscale didn't open the door. Try again, or turn sharing off and on.",
-  noNetwork: 'This network blocks Tailscale. Try another network or a phone hotspot.',
+  operator: 'Type your password in the window that opened.',
+  https: 'Press Enable in the Tailscale page that just opened.',
+  doorFailed: 'Turn sharing off and on again.',
+  noNetwork: 'This network blocks Tailscale. Try another Wi-Fi or a phone hotspot.',
 });
 
 const CANDIDATES = {

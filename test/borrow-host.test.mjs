@@ -56,8 +56,9 @@ function fakeTs({state = 'Running', allowDoor = true} = {}) {
     operatorCommand: () => 'sudo tailscale set --operator=tester',
     ping: async () => ({ms: 42, kind: 'direct'}),
     clearDoor: async () => false,
+    doorOpen: () => !!door,
     openDoor: async ({port, target}) => {
-      if (!t.allowDoor) return {ok: false, problem: 'operator', say: 'One admin step, once, so AMP can open and close its own door.'};
+      if (!t.allowDoor) return {ok: false, problem: 'operator', say: 'Type your password in the window that opened.'};
       const to = new URL(target);
       const srv = http.createServer((req, res) => {
         const headers = {...req.headers, 'tailscale-user-login': 'friend@example.com'};
@@ -74,9 +75,10 @@ function fakeTs({state = 'Running', allowDoor = true} = {}) {
 }
 const hostTs = fakeTs({allowDoor: false}), friendTs = fakeTs({state: 'NeedsLogin'});
 const hostHome = mkdtempSync(join(tmpdir(), 'amp-host-')), friendHome = mkdtempSync(join(tmpdir(), 'amp-friend-'));
-const problems = [];
-const host = createBorrow({ctx: hostDsh.ctx, home: hostHome, tailscale: hostTs.api, report: (w, e) => problems.push(w + ': ' + e), refreshMs: 300, resumeDelayMs: 100});
-const friend = createBorrow({ctx: friendDsh.ctx, home: friendHome, tailscale: friendTs.api, report: (w, e) => problems.push(w + ': ' + e)});
+const problems = []; const opened = []; let adminAsked = 0;
+const quiet = {openURL: u => opened.push(u), admin: async () => { adminAsked++; return false; }, retryMs: 200};
+const host = createBorrow({ctx: hostDsh.ctx, home: hostHome, tailscale: hostTs.api, report: (w, e) => problems.push(w + ': ' + e), refreshMs: 300, resumeDelayMs: 100, ...quiet});
+const friend = createBorrow({ctx: friendDsh.ctx, home: friendHome, tailscale: friendTs.api, report: (w, e) => problems.push(w + ': ' + e), ...quiet});
 const call = async (side, path, body) => (await side.routes['/api/amp-borrow/' + path](new Request('http://x', {method: 'POST', body: JSON.stringify(body || {})}))).json();
 
 // host: the switch, first without the admin step
@@ -93,8 +95,11 @@ ok(/^AMP1-/.test(inv.invite || ''), 'invite made', (inv.invite || '').slice(0, 2
 
 // friend: Tailscale not signed in yet, then signed in
 let j = await call(friend, 'join', {invite: inv.invite});
-ok(j.needs?.step === 'login' && j.needs.url === 'https://login.tailscale.com/a/x1', 'friend not signed in to Tailscale: the sign-in page to open', JSON.stringify(j.needs));
+ok(j.friend?.step?.step === 'login' && opened.includes('https://login.tailscale.com/a/x1'), 'friend not signed in: the sign-in page opens by itself', JSON.stringify(j.friend?.step));
+ok(adminAsked === 1, 'host: the admin password window was asked for once, by itself');
 friendTs.state = 'Running';
+ok(await until(async () => !!(await call(friend, 'status')).friend.host), 'friend signs in: it connects by itself, nothing to press');
+await call(friend, 'leave');
 j = await call(friend, 'join', {invite: 'AMP1-garbage-00000000'});
 ok(/incomplete/.test(j.error || ''), 'a badly copied invite: "copy it again"');
 j = await call(friend, 'join', {invite: inv.invite});
@@ -156,10 +161,14 @@ inv = await call(host, 'invite', {name: 'Sam'});
 j = await call(friend, 'join', {invite: inv.invite});
 r = await chat().catch(() => chat()); ok(r.status === 200, 'friend borrows again (a new invite after the door moved)');
 
+// Tailscale's door goes away on its own (Tailscale restarted): sharing reopens it by itself
+const opens = hostTs.doorsOpened;
+await hostTs.api.closeDoor();
+ok(await until(async () => hostTs.doorsOpened > opens && (await call(host, 'status')).host.sharing, 5000), 'door lost: reopened by itself, still sharing');
 // DSH restarts: sharing comes back by itself (decision 8)
 await host.dispose();
 ok(!(await host.status()).host.sharing, 'DSH closed: sharing ended with it');
-const host2 = createBorrow({ctx: fakeDsh(hostDsh.rows['llm-pi-ai'].config, {}).ctx, home: hostHome, tailscale: fakeTs().api, report: () => {}, resumeDelayMs: 100});
+const host2 = createBorrow({ctx: fakeDsh(hostDsh.rows['llm-pi-ai'].config, {}).ctx, home: hostHome, tailscale: fakeTs().api, report: () => {}, resumeDelayMs: 100, ...quiet});
 ok(await until(() => host2.status().host.sharing, 5000), 'DSH opened again: sharing came back by itself');
 await host2.dispose();
 

@@ -7,7 +7,8 @@
 //         models. Leave: remove it and put their old default model back.
 // Every DSH service is optional (ctx.get at the use site): a DSH without one shows a plain message for that part,
 // and nothing here can stop the radio, the bar or DSH itself.
-import {fork} from 'node:child_process';
+import {fork, spawn} from 'node:child_process';
+import {existsSync} from 'node:fs';
 import {mkdirSync, readFileSync, writeFileSync, renameSync, rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -19,13 +20,13 @@ import {createLink} from './link.mjs';
 const GATE = fileURLToPath(new URL('./gate.mjs', import.meta.url));
 export const HOST_SAY = Object.freeze({
   noConfig: "This DSH can't share its models yet. Update DSH, then try again.",
-  noLocal: "No AI is running on this PC right now. Load one in DSH's model picker and sharing starts by itself.",
-  gateDied: 'The sharing helper stopped. Turn Share my AI on again.',
+  noLocal: 'Sharing is on. Your friend can use it once you load an AI.',
+  gateDied: 'Turn sharing off and on again.',
   stopped: 'Stopped. Nobody is connected.',
   doorStillOpen: "Stopped, but Tailscale still shows AMP's door. Turn Tailscale off and on, or restart DSH.",
   notSharing: 'Turn Share my AI on first.',
   shareLink: 'That is not a Tailscale share link. In Tailscale, press Share on this PC, then Copy link.',
-  waitAccept: 'Waiting for you to press Accept in the Tailscale tab.',
+  waitAccept: 'Press Accept in the Tailscale page that just opened.',
   joined: name => `Connected to ${name}'s AI.`,
   left: 'Removed. Your own models are back.',
   noEditor: 'This DSH cannot add models by itself. Open Settings, Models, Custom model API, and enter the four values below.',
@@ -37,8 +38,27 @@ const writeJSON = (f, v) => {
   writeFileSync(tmp, JSON.stringify(v, null, 1), {mode: 0o600}); renameSync(tmp, f);
 };
 
+// Opens a page in the person's own browser, from DSH's server on their own PC (so nobody has to click a link).
+export function openInBrowser(url) {
+  try {
+    const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+    spawn(cmd, args, {detached: true, stdio: 'ignore', windowsHide: true}).on('error', () => {}).unref();
+    return true;
+  } catch { return false; }
+}
+// The one admin step on Linux, as the desktop's own password window (polkit). Nothing to copy or type in a terminal.
+export function askAdmin(tsPath, user) {
+  return new Promise(resolve => {
+    if (process.platform !== 'linux' || !existsSync('/usr/bin/pkexec') || !tsPath || !user) return resolve(false);
+    const p = spawn('/usr/bin/pkexec', [tsPath.startsWith('/') ? tsPath : '/usr/bin/tailscale', 'set', `--operator=${user}`], {stdio: 'ignore'});
+    p.on('error', () => resolve(false)); p.on('exit', code => resolve(code === 0));
+  });
+}
+
 export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl = fork, fetchImpl = globalThis.fetch,
-  report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000} = {}) {
+  report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000, openURL = openInBrowser, admin = askAdmin, retryMs = 5000} = {}) {
+  const shown = new Set();
+  const openOnce = url => { if (url && !shown.has(url)) { shown.add(url); try { openURL(url); } catch {} } };
   const dir = join(home, 'amp-radio', 'borrow');
   try { mkdirSync(join(dir, 'gate'), {recursive: true, mode: 0o700}); } catch {}
   const settingsFile = join(dir, 'settings.json'), friendFile = join(dir, 'friend.json');
@@ -111,13 +131,31 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     await toGate({type: 'models', models: r.models});
   }
 
-  async function startSharing() {
+  // The switch is a wish: once it is on, sharing keeps trying by itself until it works and opens the one page a person
+  // needs, once. Nobody presses "check again".
+  let hostRetryT = null;
+  const retryShare = () => { clearTimeout(hostRetryT); if (settings.sharing && !host.sharing) { hostRetryT = setTimeout(() => startSharing().catch(e => report('borrow retry', e)), retryMs); hostRetryT.unref?.(); } };
+  let starting = null;
+  function startSharing() { return (starting ??= startSharingOnce().finally(() => { starting = null; })); }
+  // Every few seconds while sharing: the models, and is the door still there? Tailscale restarting, a network change or a
+  // crash closes it; then sharing starts again by itself on the same port, so the friend's link reconnects on its own.
+  async function watch() {
+    if (!host.sharing) return;
+    if (tailscale.doorOpen && !tailscale.doorOpen()) { report('borrow door', 'door gone, reopening'); await stopSharing({keepSetting: true}); return startSharing(); }
+    return refresh();
+  }
+  async function startSharingOnce() {
     if (host.sharing) return status();
+    if (!settings.sharing) { settings.sharing = true; save(); }
     host.problem = null;
     const st = await tailscale.status();
     const step = setupStep(st);
-    host.step = step; host.tsName = st?.name || null;
-    if (step.step !== 'ready') return status();
+    host.step = step; host.tsName = st?.name || null; host.tsIP = st?.ips?.[0] || null;
+    if (step.step !== 'ready') {
+      if (step.step === 'missing') openOnce('https://tailscale.com/download');
+      if (step.step === 'login' || step.step === 'expired') openOnce(step.url || 'https://login.tailscale.com/');
+      retryShare(); return status();
+    }
     const r = await loadedModels();
     if (r.error) { host.problem = r.error; return status(); }
     host.localProviders = r.providers; host.models = r.models.map(m => m.id);
@@ -136,7 +174,8 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       if (host.gate !== child) return;                 // an older helper ending late: not the one in use
       const wasOn = host.sharing;
       host.gate = null; setLock(false);
-      if (wasOn) { host.problem = HOST_SAY.gateDied; stopSharing({keepSetting: true}).catch(() => {}); }
+      // the helper stopped without being asked: close up and start again by itself (the switch is still on)
+      if (wasOn) stopSharing({keepSetting: true}).then(() => retryShare()).catch(() => {});
     });
     const ready = await new Promise(resolve => {
       const t = setTimeout(() => resolve(null), 8000);
@@ -149,22 +188,36 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     if (!ready) { try { child.kill(); } catch {} host.gate = null; host.problem = HOST_SAY.gateDied; return status(); }
     host.gatePort = ready;
     // the door
-    const port = freeDoorPort(await tailscale.doorPorts());
-    const opened = await tailscale.openDoor({port, target: `http://127.0.0.1:${ready}`});
+    const taken = await tailscale.doorPorts();
+    // the same door every time, so invites already sent keep working
+    const port = settings.lastDoor && !taken.includes(settings.lastDoor) ? settings.lastDoor : freeDoorPort(taken);
+    let opened = await tailscale.openDoor({port, target: `http://127.0.0.1:${ready}`});
+    if (!opened.ok && opened.problem === 'operator' && !host.askedAdmin) {
+      host.askedAdmin = true;
+      host.step = {step: 'admin', say: 'Type your password in the window that just opened.'};
+      if (await admin(await tailscale.find?.(), process.env.USER || process.env.USERNAME || '')) opened = await tailscale.openDoor({port, target: `http://127.0.0.1:${ready}`});
+    }
+    if (!opened.ok && opened.problem === 'https' && opened.url) openOnce(opened.url);
     if (!opened.ok) {
       try { child.kill(); } catch {} host.gate = null;
       host.step = {step: opened.problem, say: opened.say, url: opened.url || null, command: opened.problem === 'operator' ? tailscale.operatorCommand() : null};
+      if (opened.problem !== 'operator') retryShare();
       return status();
+    }
+    if (!settings.sharing) {                          // switched off while it was starting: off wins
+      try { child.kill(); } catch {} host.gate = null; await tailscale.closeDoor(); host.step = null; return status();
     }
     host.door = {port: opened.port, url: opened.url || `https://${st.name}:${opened.port}`};
     host.sharing = true; settings.sharing = true; settings.lastDoor = opened.port; save();
     if (!r.models.length) host.problem = HOST_SAY.noLocal;
-    clearInterval(refreshT); refreshT = setInterval(() => refresh().catch(e => report('borrow refresh', e)), refreshMs); refreshT.unref?.();
+    clearInterval(refreshT); refreshT = setInterval(() => watch().catch(e => report('borrow refresh', e)), refreshMs); refreshT.unref?.();
     return status();
   }
 
   async function stopSharing({keepSetting = false, force = false} = {}) {
-    clearInterval(refreshT); refreshT = null;
+    clearInterval(refreshT); refreshT = null; clearTimeout(hostRetryT);
+    if (!keepSetting) { settings.sharing = false; save(); }
+    host.step = null; host.askedAdmin = false;
     const child = host.gate;
     if (child) {
       if (force) {                                                    // the friend is told first, mid-reply if need be
@@ -187,7 +240,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   async function invite(name, shareLink) {
     if (!host.sharing || !host.door) return {error: HOST_SAY.notSharing};
     if (shareLink && !isShareLink(shareLink)) return {error: HOST_SAY.shareLink};
-    const added = await toGate({type: 'addFriend', name: String(name || 'Friend').slice(0, 40)}, true);
+    const added = await toGate({type: 'addFriend', name: name ? String(name).slice(0, 40) : ''}, true);
     if (!added?.key) return {error: HOST_SAY.gateDied};
     return {invite: encodeInvite({host: settings.hostName, url: host.door.url, key: added.key, exp: added.inviteExp, share: shareLink?.trim() || null}), expires: added.inviteExp};
   }
@@ -240,7 +293,13 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     if (!row) { friend.problem = HOST_SAY.noEditor; friend.manual = {baseURL: entry.baseURL, key: s.localKey, models: entry.models.map(m => m.id)}; return; }
     if (!entry.models.length && !friend.providerSet) return;          // nothing to add yet; the list fills when the host loads a model
     try { await row.ed.edit(row.entry, (cur, inh) => addProvider(cur, inh, s.providerId, entry)); friend.providerSet = true; }
-    catch (e) { report('borrow add provider', e); friend.problem = HOST_SAY.noEditor; }
+    catch (e) { report('borrow add provider', e); friend.problem = HOST_SAY.noEditor; return; }
+    // New chats use the friend's AI straight away (nothing to pick); "Stop using" puts their own choice back.
+    if (!s.defaultSet && entry.models.length) {
+      const d = defaultRow();
+      if (d) try { await d.ed.edit(d.entry, cur => ({...(cur || {}), provider: s.providerId, model: entry.models[0].id})); s.defaultSet = true; writeJSON(friendFile, s); }
+      catch (e) { report('borrow set default', e); }
+    }
   }
   async function startLink() {
     const s = friend.saved; if (!s) return;
@@ -261,18 +320,37 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     const port = await friend.link.listen(s.port || 0);
     if (port !== s.port) { s.port = port; writeJSON(friendFile, s); friend.providerSet = false; }
   }
+  // Joining keeps going by itself: Tailscale installed? signed in? share accepted? Each page opens once, the card shows
+  // one line, and it connects the moment everything is in place. Up to 30 minutes, then it asks to paste again.
+  let joinT = null, joinUntil = 0;
   async function joinInvite(text) {
     let inv;
-    try { inv = decodeInvite(text); } catch (e) { return {error: e.message}; }
+    try { inv = decodeInvite(text); } catch (e) { friend.step = null; return {...status(), error: e.message}; }
+    friend.pending = inv; joinUntil = Date.now() + 30 * 60_000; friend.problem = null;
+    return attemptJoin();
+  }
+  async function attemptJoin() {
+    clearTimeout(joinT);
+    const inv = friend.pending; if (!inv) return status();
+    const again = () => {
+      if (Date.now() < joinUntil) { joinT = setTimeout(() => attemptJoin().catch(e => report('borrow join', e)), retryMs); joinT.unref?.(); }
+      else { friend.pending = null; friend.step = {step: 'timeout', say: 'That took too long. Paste the invite again.'}; }
+      return status();
+    };
     const st = await tailscale.status();
     const step = setupStep(st);
     friend.step = step;
-    if (step.step !== 'ready') return {...status(), needs: step};
+    if (step.step !== 'ready') {
+      if (step.step === 'missing') openOnce('https://tailscale.com/download');
+      if (step.step === 'login' || step.step === 'expired') openOnce(step.url || 'https://login.tailscale.com/');
+      return again();
+    }
     // can this PC reach the host's door yet? if not, the share has not been accepted
     let reach = false;
-    try { const r = await fetchImpl(inv.url + '/amp/v1/hello', {headers: {authorization: 'Bearer ' + inv.key}, signal: AbortSignal.timeout(6000)}); reach = r.status !== 404; if (r.status === 401 || r.status === 403) { const j = await r.json().catch(() => null); return {error: j?.error?.message || 'This invite is not valid any more.'}; } }
+    try { const r = await fetchImpl(inv.url + '/amp/v1/hello', {headers: {authorization: 'Bearer ' + inv.key}, signal: AbortSignal.timeout(6000)}); reach = r.status !== 404; if (r.status === 401 || r.status === 403) { const j = await r.json().catch(() => null); friend.pending = null; friend.step = {step: 'bad', say: j?.error?.message || 'This invite is not valid any more. Ask your friend for a new one.'}; return {...status(), error: friend.step.say}; } }
     catch { reach = false; }
-    if (!reach) return {...status(), needs: {step: 'accept', say: HOST_SAY.waitAccept, url: inv.share}};
+    if (!reach) { friend.step = {step: 'accept', say: HOST_SAY.waitAccept, url: inv.share}; openOnce(inv.share); return again(); }
+    friend.pending = null; friend.step = null;
     const prev = defaultRow()?.effective || null;
     const old = friend.saved;
     friend.saved = {invite: inv, localKey: old?.invite?.key === inv.key ? old.localKey : (await import('./protocol.mjs')).newKey(),
@@ -295,7 +373,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       try { await svc('credentials')?.unset?.(KEY_ENV); } catch {}
       delete process.env[KEY_ENV];
     }
-    friend.saved = null; friend.providerSet = false;
+    friend.saved = null; friend.providerSet = false; friend.pending = null; friend.step = null; clearTimeout(joinT);
     try { rmSync(friendFile, {force: true}); } catch {}
     return {...status(), say: HOST_SAY.left};
   }
@@ -303,11 +381,11 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   // ---- what the card shows ------------------------------------------------------------------------------------------
   function status() {
     return {
-      host: {sharing: host.sharing, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
+      host: {sharing: host.sharing, wish: !!settings.sharing, tsIP: host.tsIP || null, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
         name: settings.hostName, models: host.models, lock: host.lock, lockFriend: host.lockFriend, waitingHere: host.waitingHere,
         live: host.state, settings: {idleMin: settings.idleMin, turnHours: settings.turnHours, dayHours: settings.dayHours, showPing: settings.showPing}},
       friend: friend.saved ? {host: friend.saved.invite.host, providerId: friend.saved.providerId, state: friend.state, step: friend.step,
-        problem: friend.problem, manual: friend.manual || null} : {step: friend.step, problem: friend.problem},
+        problem: friend.problem, manual: friend.manual || null} : {step: friend.step, problem: friend.problem, pending: !!friend.pending},
     };
   }
 
@@ -351,7 +429,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   return {
     routes, status, startSharing, stopSharing, invite, joinInvite, leave, guard,
     async dispose() {
-      clearTimeout(resumeT); undoLock();
+      clearTimeout(resumeT); clearTimeout(hostRetryT); clearTimeout(joinT); undoLock();
       await stopSharing({keepSetting: true}).catch(() => {});
       try { await friend.link?.close(); } catch {}
     },

@@ -182,7 +182,11 @@ export function createGate(options = {}) {
     const login = String(req.headers['tailscale-user-login'] || '').trim().toLowerCase();
     if (o.requireIdentity) {
       if (!login) return {error: [403, SAY.noIdentity, 'no_identity']};
-      if (!f.login) { f.login = login; f.firstUsed = now(); saveFriends(); audit({friend: f.id, event: 'invite used'}); }
+      if (!f.login) {
+        f.login = login; f.firstUsed = now();
+        if (f.autoName) { const n = login.split('@')[0].replace(/[._-]+/g, ' ').trim(); f.name = (n.charAt(0).toUpperCase() + n.slice(1)).slice(0, 40) || f.name; f.autoName = false; }
+        saveFriends(); audit({friend: f.id, event: 'invite used'});
+      }
       else if (f.login !== login) return {error: [403, SAY.otherPerson, 'other_person']};
     }
     return {friend: f};
@@ -395,7 +399,7 @@ export function createGate(options = {}) {
     },
     addFriend({name, expiresMs = null} = {}) {
       const key = newKey();
-      const f = {id: newId(), name: String(name || 'Friend').slice(0, 40), fp: fingerprint(key), login: null, created: now(),
+      const f = {id: newId(), name: String(name || 'Friend').slice(0, 40), autoName: !name, fp: fingerprint(key), login: null, created: now(),
         inviteExp: now() + L.inviteMs, expires: expiresMs ? now() + expiresMs : null, revoked: false, day: null};
       friends.push(f); saveFriends(); audit({friend: f.id, event: 'invite made'});
       broadcast();

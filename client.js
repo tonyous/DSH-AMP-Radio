@@ -6,7 +6,7 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
 
     // Always-available offline stations (no network needed).
-    const AMP_VERSION = '2.2.0';
+    const AMP_VERSION = '2.2.1';
     const reported = new Set();
     function ampReport(where, err) {
       const key = where + ':' + String(err?.message || err).slice(0, 80);
@@ -129,7 +129,7 @@ window.__ModuleLoader__.load({
       .dsh-radio-empty{padding:14px;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-align:center;}
       .dsh-radio-visualizer{position:absolute;bottom:0;left:0;width:100%;height:60px;display:block;padding:0;background:transparent;pointer-events:none;z-index:10;}
       .dsh-radio-pill-visualizer{display:block;flex-shrink:0;margin-left:6px;}
-      .dsh-radio-title-link{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;transition:color .15s ease;display:flex;align-items:center;}
+      .dsh-radio-title-link{white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a8a);text-decoration:none;transition:color .15s ease;display:flex;align-items:center;}
       .dsh-radio-title-link:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
       .dsh-radio-title-discord{color:var(--dsw-alias-label-tertiary,#8a8a8a);display:flex;align-items:center;transition:color .15s ease;}
       .dsh-radio-title-discord:hover{color:var(--dsw-alias-label-primary,#e6e6e6);}
@@ -1493,7 +1493,7 @@ html[data-amp-bar-live=top] .amp-stats{display:contents}
       try {
         const r = await fetch('/api/amp-borrow/' + path, body === undefined ? {credentials: 'same-origin', cache: 'no-store'}
           : {method: 'POST', credentials: 'same-origin', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-        if (r.status === 404) { borrowSet(null, 'Restart DSH once to finish installing this part of AMP.'); return null; }
+        if (r.status === 404) { borrowSet(null, 'restart'); return null; }
         const j = await r.json();
         if (j && (j.host || j.friend)) borrowSet(j);
         return j;
@@ -1548,117 +1548,112 @@ html[data-amp-bar-live=top] .amp-stats{display:contents}
 .amp-borrow-field{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:8px;background:var(--dsw-alias-bg-l2,transparent);color:inherit;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:none}
 .amp-borrow-field:focus{outline:none;border-color:var(--dsw-alias-state-business-primary,#4c8dff)}
 .amp-borrow-row2{display:flex;gap:6px}.amp-borrow-row2>*{flex:1;min-width:0}
+.amp-borrow-big{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-business-primary,#4c8dff);background:rgba(76,141,255,.12);color:var(--dsw-alias-label-primary,#e6e6e6);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s ease}
+.amp-borrow-big:hover:not(:disabled){background:rgba(76,141,255,.22)}
+.amp-borrow-big:disabled{opacity:.5;cursor:default}
+.amp-borrow-big-stop{border-color:#e5534b;background:rgba(229,83,75,.12);color:#ff7b72}
+.amp-borrow-big-stop:hover:not(:disabled){background:rgba(229,83,75,.22)}
+.amp-borrow-line1{display:flex;align-items:center;gap:8px;margin:0;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary,#e6e6e6)}
+.amp-borrow-small{align-self:center;border:0;background:none;color:var(--dsw-alias-label-tertiary,#8a8a8a);font:inherit;font-size:12px;cursor:pointer;padding:4px 6px}
+.amp-borrow-small:hover{color:var(--dsw-alias-label-primary,#e6e6e6)}
+.amp-borrow-ping{align-self:flex-start;padding:0;font-variant-numeric:tabular-nums}
 .amp-borrow-banner{display:flex;align-items:center;gap:8px;padding:5px 10px;margin:0 0 6px;border-radius:10px;font-size:12px;background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.12))}
 .amp-borrow-banner span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .amp-borrow-banner button{border:0;background:none;color:#e5534b;font:inherit;font-weight:600;cursor:pointer;padding:2px 4px}
 @media (prefers-reduced-motion:reduce){.amp-borrow-wire[data-on]{animation:none}}
 `;
 
-    function Step({step, onRetry}) {
-      const ref = React.useRef(null);
-      if (!step || step.step === 'ready') return step?.warn ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, step.warn) : null;
-      return h('div', {style: {display: 'flex', flexDirection: 'column', gap: 6}},
-        h('p', {className: 'amp-borrow-say', 'data-warn': ''}, step.say),
-        step.command ? h('div', {className: 'amp-borrow-row2'},
-          h('input', {ref, id: 'amp-borrow-cmd', className: 'amp-borrow-field', readOnly: true, value: step.command}),
-          h('button', {type: 'button', className: 'amp-borrow-btn', style: {flex: 'none'}, onClick: () => copy(step.command, ref.current)}, 'Copy')) : null,
-        step.step === 'missing' ? h('a', {className: 'amp-borrow-btn', href: 'https://tailscale.com/download', target: '_blank', rel: 'noopener noreferrer', style: {textAlign: 'center', textDecoration: 'none'}}, 'Get Tailscale') : null,
-        step.url ? h('a', {className: 'amp-borrow-btn', href: step.url, target: '_blank', rel: 'noopener noreferrer', style: {textAlign: 'center', textDecoration: 'none'}}, step.step === 'accept' ? 'Open the share' : 'Open the page') : null,
-        h('button', {type: 'button', className: 'amp-borrow-btn', onClick: onRetry}, 'Check again'));
+    // One thing on screen at a time: one short line and one big button. Everything else happens by itself.
+    const Big = ({onClick, children, danger, disabled}) => h('button', {type: 'button', className: 'amp-borrow-big' + (danger ? ' amp-borrow-big-stop' : ''), disabled, onClick}, children);
+    const Line = ({children, dot}) => h('p', {className: 'amp-borrow-line1'}, dot ? h('span', {className: 'amp-borrow-dot', 'data-s': dot}) : null, h('span', null, children));
+    const Small = ({onClick, children}) => h('button', {type: 'button', className: 'amp-borrow-small', onClick}, children);
+    async function readClip() { try { return (await navigator.clipboard.readText()) || ''; } catch { return null; } }
+    function PasteBox({placeholder, onText}) {
+      return h('input', {id: 'amp-borrow-pastebox', className: 'amp-borrow-field', autoFocus: true, placeholder,
+        onPaste: e => { const t = e.clipboardData?.getData('text') || ''; if (t) { e.preventDefault(); onText(t); } },
+        onKeyDown: e => { if (e.key === 'Enter' && e.currentTarget.value.trim()) onText(e.currentTarget.value); }});
     }
 
-    function ShareSide({s}) {
-      const host = s.host || {}, live = host.live || {}, turn = live.turn;
-      const [busy, setBusy] = React.useState(false);
-      const [name, setName] = React.useState('');
-      const [share, setShare] = React.useState('');
-      const [invite, setInvite] = React.useState(null);
+    function ShareSide({s, onOff}) {
+      const host = s.host || {}, turn = host.live?.turn;
+      const [stage, setStage] = React.useState('idle');       // idle | copy | box | done
       const [msg, setMsg] = React.useState(null);
-      const inviteRef = React.useRef(null);
-      const act = async (path, body) => { setBusy(true); try { return await borrowCall(path, body); } finally { setBusy(false); } };
-      const on = !!host.sharing;
-      const dot = turn ? 'on' : on ? (host.problem ? 'wait' : 'on') : host.problem && /Stopped/.test(host.problem) ? 'stop' : '';
+      const [busy, setBusy] = React.useState(false);
+      const makeInvite = async link => {
+        setBusy(true);
+        const r = await borrowCall('invite', {share: String(link || '').trim()});
+        setBusy(false);
+        if (!r?.invite) { setMsg('That was not the Tailscale link. Copy it again, then press I copied it.'); setStage('copy'); return; }
+        let copied = false; try { await navigator.clipboard.writeText(r.invite); copied = true; } catch {}
+        setMsg(copied ? null : r.invite); setStage('done');
+      };
+      const copiedIt = async () => { const t = await readClip(); if (t === null) { setStage('box'); setMsg(null); } else makeInvite(t); };
+      let line, dot = 'on';
+      if (!host.sharing) { dot = 'wait'; line = host.step?.say || (host.problem && !/Stopped/.test(host.problem) ? host.problem : 'Getting ready…'); }
+      else if (turn) line = `${turn.friend} is using your AI.`;
+      else if (!host.models?.length) line = 'Sharing is on. Your friend can use it once you load an AI.';
+      else line = 'Sharing is on.';
       return h('section', null,
-        h('div', {className: 'amp-bar-row'},
-          h('span', {style: {display: 'flex', alignItems: 'center', gap: 8}}, h('span', {className: 'amp-borrow-dot', 'data-s': dot}), h('b', {style: {fontWeight: 600}}, 'Share my AI')),
-          h('button', {type: 'button', role: 'switch', 'aria-checked': on, 'aria-label': 'Share my AI', className: 'amp-bar-switch', disabled: busy,
-            onClick: () => act('share', {on: !on})})),
-        h(Step, {step: host.step, onRetry: () => act('share', {on: true})}),
-        host.problem ? h('p', {className: 'amp-borrow-say', 'data-warn': on ? '' : undefined}, host.problem) : null,
-        on && !turn ? h('p', {className: 'amp-borrow-say'}, host.models?.length ? `Ready to lend: ${host.models.join(', ')}.` : 'Nothing loaded yet.') : null,
+        h(Line, {dot}, line),
         turn ? h(React.Fragment, null,
-          h('div', {className: 'amp-borrow-line'}, h('b', null, host.name || 'You'), h('span', {className: 'amp-borrow-wire', 'data-on': turn.connected ? '' : undefined}), h('b', null, turn.friend)),
-          h('p', {className: 'amp-borrow-say'}, turn.replying ? `${turn.friend} is using your AI. Your messages wait until they are done.` : `${turn.friend} has the turn. It comes back to you after a quiet moment.`),
           h('div', {className: 'amp-borrow-meters'},
             h('div', null, h('span', null, 'Speed'), h('b', null, turn.replying ? `${turn.tps || 0}/s` : '–')),
             h('div', null, h('span', null, 'In'), h('b', null, num(turn.tokIn))),
             h('div', null, h('span', null, 'Out'), h('b', null, num(turn.tokOut))),
             h('div', null, h('span', null, 'Left'), h('b', null, clock(turn.secondsLeft)))),
-          h('button', {type: 'button', className: 'amp-borrow-btn', disabled: busy, onClick: () => act('release', {})}, 'Free it now')) : null,
-        on && live.waiting?.length ? h('p', {className: 'amp-borrow-say'}, `${live.waiting.join(', ')} is waiting for your reply to finish.`) : null,
-        on ? h('button', {type: 'button', className: 'amp-borrow-btn amp-borrow-stop', disabled: busy, onClick: () => act('stop', {})}, 'Force stop') : null,
-        on ? h('details', null,
-          h('summary', {style: {cursor: 'pointer', fontSize: 12}}, 'Invite a friend'),
-          h('div', {style: {display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8}},
-            h('p', {className: 'amp-borrow-say'}, '1. In Tailscale, press Share on this PC and copy the link. 2. Paste it here, add their name, make the invite.'),
-            h('a', {className: 'amp-borrow-btn', href: 'https://login.tailscale.com/admin/machines', target: '_blank', rel: 'noopener noreferrer', style: {textAlign: 'center', textDecoration: 'none'}}, 'Open Tailscale'),
-            h('input', {id: 'amp-borrow-share', className: 'amp-borrow-field', placeholder: 'Tailscale share link', value: share, onChange: e => setShare(e.target.value)}),
-            h('input', {id: 'amp-borrow-name', className: 'amp-borrow-field', placeholder: "Friend's name", value: name, onChange: e => setName(e.target.value)}),
-            h('button', {type: 'button', className: 'amp-borrow-btn', disabled: busy || !name.trim(), onClick: async () => {
-              const r = await act('invite', {name, share: share.trim() || undefined});
-              if (r?.invite) { setInvite(r.invite); setMsg(null); } else setMsg(r?.error || 'That did not work. Try again.');
-            }}, 'Make invite'),
-            msg ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, msg) : null,
-            invite ? h('div', {className: 'amp-borrow-row2'},
-              h('input', {ref: inviteRef, id: 'amp-borrow-invite', className: 'amp-borrow-field', readOnly: true, value: invite}),
-              h('button', {type: 'button', className: 'amp-borrow-btn', style: {flex: 'none'}, onClick: async () => setMsg(await copy(invite, inviteRef.current) ? 'Copied. Send it to your friend; it works for 24 hours.' : 'Selected. Press Ctrl+C to copy.')}, 'Copy invite')) : null)) : null);
+          h(Big, {danger: true, onClick: () => borrowCall('stop', {})}, 'Force stop')) : null,
+        host.sharing && !turn ? (
+          stage === 'idle' ? h(Big, {onClick: () => { window.open(host.tsIP ? `https://login.tailscale.com/admin/machines/${host.tsIP}` : 'https://login.tailscale.com/admin/machines', '_blank', 'noopener'); setStage('copy'); }}, 'Invite a friend')
+          : stage === 'copy' ? h(React.Fragment, null, h(Line, null, msg || 'In Tailscale, press Share, then Copy link.'), h(Big, {disabled: busy, onClick: copiedIt}, 'I copied it'))
+          : stage === 'box' ? h(React.Fragment, null, h(Line, null, 'Paste the Tailscale link here.'), h(PasteBox, {placeholder: 'Paste here', onText: makeInvite}))
+          : h(React.Fragment, null,
+              h(Line, {dot: 'on'}, msg ? 'Send this to your friend:' : 'Invite copied. Paste it to your friend.'),
+              msg ? h('input', {id: 'amp-borrow-invite', className: 'amp-borrow-field', readOnly: true, value: msg, onFocus: e => e.currentTarget.select()}) : null,
+              h(Small, {onClick: () => { setStage('idle'); setMsg(null); }}, 'Invite someone else'))
+        ) : null,
+        h(Small, {onClick: () => { onOff?.(); borrowCall('share', {on: false}); }}, 'Turn sharing off'));
     }
 
-    function UseSide({s}) {
+    function UseSide({s, onBack}) {
       const f = s.friend || {}, st = f.state || {};
-      const [text, setText] = React.useState('');
-      const [busy, setBusy] = React.useState(false);
-      const [say, setSay] = React.useState(null);
-      const [showPing, setShowPing] = React.useState(() => { try { return localStorage.getItem('amp-borrow-ping') !== 'off'; } catch { return true; } });
-      const act = async (path, body) => { setBusy(true); try { const r = await borrowCall(path, body); setSay(r?.error || r?.say || null); return r; } finally { setBusy(false); } };
-      if (!f.host) return h('section', null,
-        h('h3', null, "Use a friend's AI"),
-        h('textarea', {id: 'amp-borrow-paste', className: 'amp-borrow-field', rows: 3, placeholder: 'Paste the invite your friend sent', value: text, onChange: e => setText(e.target.value)}),
-        h('button', {type: 'button', className: 'amp-borrow-btn', disabled: busy || !text.trim(), onClick: () => act('join', {invite: text})}, busy ? 'Connecting…' : 'Connect'),
-        h(Step, {step: f.step && f.step.step !== 'ready' ? f.step : null, onRetry: () => act('join', {invite: text})}),
-        say ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, say) : null,
-        borrowState?.friend?.problem ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, borrowState.friend.problem) : null);
-      const turnWords = {yours: 'Your turn.', free: 'Free. Send a message to start your turn.', host: `${f.host} is using it. You are next.`,
-        waiting: `${f.host} is using it. Your message goes by itself when they finish.`, other: 'Someone else has the turn.', off: `${f.host} stopped sharing.`}[st.turn] || 'Connecting…';
-      const path = st.path?.words || (st.connected ? 'Connected' : 'Reconnecting…');
+      const [box, setBox] = React.useState(false);
+      const [err, setErr] = React.useState(null);
+      const [ping, setPing] = React.useState(() => { try { return localStorage.getItem('amp-borrow-ping') !== 'off'; } catch { return true; } });
+      const join = async text => { setErr(null); const r = await borrowCall('join', {invite: text}); if (r?.error) { setErr(r.error); setBox(false); } };
+      const paste = async () => { const t = await readClip(); if (t === null) setBox(true); else join(t); };
+      if (!f.host && !f.pending) return h('section', null,
+        h(Line, null, err || (f.step?.say && f.step.step !== 'ready' ? f.step.say : 'Copy the invite your friend sent, then press:')),
+        box ? h(PasteBox, {placeholder: 'Paste the invite here', onText: join}) : h(Big, {onClick: paste}, 'Paste invite'),
+        onBack ? h(Small, {onClick: onBack}, 'Back') : null);
+      if (f.pending) return h('section', null, h(Line, {dot: 'wait'}, f.step?.say || 'Connecting…'), h(Small, {onClick: () => borrowCall('leave', {})}, 'Cancel'));
+      const where = st.path?.words || (st.connected ? 'Connected' : null);
+      const turnLine = {yours: 'Your turn.', waiting: `${f.host} is using it. Yours is next.`, host: `${f.host} is using it. Yours is next.`, other: 'Someone else is using it.', off: `${f.host} stopped sharing.`}[st.turn];
       return h('section', null,
-        h('h3', null, "Using a friend's AI"),
-        h('div', {className: 'amp-borrow-line'}, h('b', null, 'You'), h('span', {className: 'amp-borrow-wire', 'data-on': st.connected ? '' : undefined, 'data-relay': st.path?.kind === 'relay' ? '' : undefined}), h('b', null, f.host)),
-        h('p', {className: 'amp-borrow-say', style: {display: 'flex', alignItems: 'center', gap: 8}},
-          h('span', {className: 'amp-borrow-dot', 'data-s': st.turn === 'off' ? 'stop' : st.connected ? (st.turn === 'waiting' || st.turn === 'host' ? 'wait' : 'on') : 'wait'}),
-          h('span', null, turnWords)),
-        h('p', {className: 'amp-borrow-say'}, showPing && Number.isFinite(st.pingMs) ? `${path} · ${st.pingMs} ms` : path,
-          Number.isFinite(st.secondsLeft) && st.turn === 'yours' ? ` · ${clock(st.secondsLeft)} left` : ''),
-        st.models?.length ? h('p', {className: 'amp-borrow-say'}, `In your model list as "Borrowed · ${f.host}": ${st.models.map(m => m.name || m.id).join(', ')}.`) : null,
-        st.problem && st.turn !== 'off' ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, st.problem) : null,
-        f.problem ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, f.problem) : null,
-        f.manual ? h('p', {className: 'amp-borrow-say'}, `Base URL ${f.manual.baseURL} · API protocol OpenAI Chat Completions · key ${f.manual.key} · model ${f.manual.models.join(', ')}`) : null,
-        h('div', {className: 'amp-borrow-row2'},
-          h('button', {type: 'button', className: 'amp-borrow-btn', disabled: busy || st.turn !== 'yours', onClick: () => act('done', {})}, "I'm done"),
-          h('button', {type: 'button', className: 'amp-borrow-btn', disabled: busy, onClick: () => act('leave', {})}, 'Forget this friend')),
-        h('div', {className: 'amp-bar-row'}, h('span', null, 'Show ping'),
-          h('button', {type: 'button', role: 'switch', 'aria-checked': showPing, 'aria-label': 'Show ping', className: 'amp-bar-switch',
-            onClick: () => { const v = !showPing; setShowPing(v); try { localStorage.setItem('amp-borrow-ping', v ? 'on' : 'off'); } catch {} }})),
-        say ? h('p', {className: 'amp-borrow-say'}, say) : null);
+        h(Line, {dot: st.turn === 'off' ? 'stop' : st.connected ? (st.turn === 'waiting' || st.turn === 'host' ? 'wait' : 'on') : 'wait'},
+          st.connected ? `Connected to ${f.host}.` : `Reconnecting to ${f.host}…`),
+        st.connected && (st.models?.length ? h(Line, null, turnLine || `New chats use ${f.host}'s AI.`) : h(Line, null, `${f.host} has no AI loaded right now. It comes back by itself.`)),
+        st.connected && where ? h('button', {type: 'button', className: 'amp-borrow-small amp-borrow-ping', title: 'Show or hide the ping',
+          onClick: () => { const v = !ping; setPing(v); try { localStorage.setItem('amp-borrow-ping', v ? 'on' : 'off'); } catch {} }},
+          ping && Number.isFinite(st.pingMs) ? `${where} · ${st.pingMs} ms` : where) : null,
+        f.problem ? h(Line, null, f.problem) : null,
+        st.turn === 'yours' ? h(Big, {onClick: () => borrowCall('done', {})}, "I'm done") : null,
+        h(Small, {onClick: () => borrowCall('leave', {})}, 'Stop using this AI'));
     }
 
     function BorrowView() {
       const [s, err] = useBorrow(BORROW_POLL_OPEN);
-      if (!s) return h('div', {className: 'amp-borrow'}, h('p', {className: 'amp-borrow-say'}, err || 'Checking…'));
+      const [pick, setPick] = React.useState(null);
+      if (!s && err === 'restart') return h('div', {className: 'amp-borrow'}, h(Line, {dot: 'wait'}, 'Restart DeepSeek Harness to finish. This page then works by itself.'));
+      if (!s) return h('div', {className: 'amp-borrow'}, h(Line, {dot: 'wait'}, err || 'One moment…'));
+      const sharing = pick !== 'off' && (s.host?.wish || s.host?.sharing);
+      const using = s.friend?.host || s.friend?.pending;
+      const side = sharing ? 'share' : using ? 'use' : pick;
       return h('div', {className: 'amp-borrow'},
-        err ? h('p', {className: 'amp-borrow-say', 'data-warn': ''}, err) : null,
-        s.friend?.host ? null : h(ShareSide, {s}),
-        s.host?.sharing ? null : h(UseSide, {s}));
+        side === 'share' ? h(ShareSide, {s, onOff: () => setPick(null)})
+        : side === 'use' ? h(UseSide, {s, onBack: using ? null : () => setPick(null)})
+        : h(React.Fragment, null,
+            h(Big, {onClick: () => { setPick('share'); borrowCall('share', {on: true}); }}, 'Share my AI'),
+            h(Big, {onClick: () => setPick('use')}, "Use a friend's AI")));
     }
 
     // Above the message box while a friend has this PC's AI: one line and Force stop, nothing else.

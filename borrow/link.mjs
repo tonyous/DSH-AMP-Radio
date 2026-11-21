@@ -23,7 +23,7 @@ export const LINK_SAY = Object.freeze({
 
 export function createLink(options = {}) {
   const o = {invite: null, localKey: null, fetchImpl: globalThis.fetch, now: Date.now, notify: () => {},
-    pathProbe: null, pingEveryMs: 15_000, backoff: [1000, 2000, 5000, 10_000, 30_000], ...options};
+    pathProbe: null, pingEveryMs: 15_000, backoff: [1000, 2000, 4000, 8000, 10_000], retries: [1000, 2000, 4000, 8000], ...options};
   const inv = o.invite;
   if (!inv?.url || !inv?.key) throw new Error('no invite');
   const localKey = o.localKey || newKey();
@@ -109,11 +109,22 @@ export function createLink(options = {}) {
     let done = false;
     res.on('close', () => { if (!done) ac.abort('dsh left'); });
     try {
-      const up = await o.fetchImpl(door + path, {
-        method: req.method, signal: ac.signal, duplex: 'half',
-        headers: {...auth, 'content-type': req.headers['content-type'] || 'application/json', accept: req.headers.accept || '*/*'},
-        body: req.method === 'POST' ? req : undefined,
-      });
+      // The message is read first, so a bad moment on the line (high ping, Wi-Fi change, the host's door reopening) is
+      // retried quietly, up to 4 times over ~15 s, before the friend ever sees a problem. Once words flow, no retry.
+      let body;
+      if (req.method === 'POST') { const parts = []; for await (const c of req) parts.push(c); body = Buffer.concat(parts); }
+      let up;
+      for (let i = 0; ; i++) {
+        try {
+          up = await o.fetchImpl(door + path, {method: req.method, signal: ac.signal, body,
+            headers: {...auth, 'content-type': req.headers['content-type'] || 'application/json', accept: req.headers.accept || '*/*'}});
+          if ((up.status === 502 || up.status === 504) && i < o.retries.length) { await up.arrayBuffer().catch(() => {}); throw new Error('door ' + up.status); }
+          break;
+        } catch (e) {
+          if (ac.signal.aborted || i >= o.retries.length) throw e;
+          await new Promise(r => setTimeout(r, o.retries[i]));
+        }
+      }
       const headers = {'content-type': up.headers.get('content-type') || 'application/json', 'cache-control': 'no-store'};
       const ra = up.headers.get('retry-after'); if (ra) headers['retry-after'] = ra;
       res.writeHead(up.status, headers);

@@ -18,7 +18,7 @@ ok(st.peers[0].login === 'friend@example.com' && st.peers[0].sharee && st.peers[
 ok(st.peers[1].path.kind === 'direct', 'a peer with a direct address: direct');
 ok(readStatus('not json') === null, 'junk from tailscale: no crash');
 ok(setupStep(st, now).step === 'ready' && !setupStep(st, now).warn, 'ready, key far away: nothing to do');
-ok(setupStep(null).step === 'missing' && /isn't on this PC/.test(setupStep(null).say), 'not installed: plain message');
+ok(setupStep(null).step === 'missing' && /Install Tailscale/.test(setupStep(null).say), 'not installed: plain message');
 ok(setupStep(readStatus(status({Version: '1.60.0'})), now).step === 'old', 'too old: update first');
 ok(setupStep(readStatus(status({BackendState: 'Stopped'})), now).step === 'stopped', 'not running: open it');
 const login = setupStep(readStatus(status({BackendState: 'NeedsLogin', AuthURL: 'https://login.tailscale.com/a/abc123'})), now);
@@ -91,7 +91,7 @@ ok(closed.closed && !f.doors.has(8445), 'door closes and Tailscale confirms it i
 ok([443, 8443, 8444].every(p => f.doors.has(p)) && !f.calls.some(c => /reset/.test(c)), 'the owner\'s other doors are never touched, no "serve reset"');
 f.spawnImpl.mode = 'denied';
 opened = await t.openDoor({port: 8445, target: 'http://127.0.0.1:5555'});
-ok(!opened.ok && opened.problem === 'operator' && /admin step/.test(opened.say), 'no permission: the admin step is asked for, nothing opened');
+ok(!opened.ok && opened.problem === 'operator' && /password/.test(opened.say), 'no permission: the admin step is asked for, nothing opened');
 ok(t.operatorCommand().startsWith('sudo tailscale set --operator='), 'the one admin command', t.operatorCommand());
 f.spawnImpl.mode = 'leaves';
 opened = await t.openDoor({port: 8446, target: 'http://127.0.0.1:5555'});

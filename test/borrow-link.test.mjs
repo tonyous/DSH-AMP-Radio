@@ -58,7 +58,7 @@ const invite = encodeInvite({host: 'Alex', url: `http://127.0.0.1:${door.address
 
 // friend side
 const events = [];
-const link = createLink({invite: decodeInvite(invite), notify: m => events.push(m), pingEveryMs: 200, backoff: [100, 200]});
+const link = createLink({invite: decodeInvite(invite), notify: m => events.push(m), pingEveryMs: 200, backoff: [100, 200], retries: [150, 300]});
 const linkPort = await link.listen(0);
 const L = `http://127.0.0.1:${linkPort}`;
 const LH = {authorization: 'Bearer ' + link.localKey, 'content-type': 'application/json'};
@@ -116,6 +116,11 @@ ok(r.status === 503 && /asleep, off/.test(j.error.message), 'host PC unreachable
 ok(await until(() => !link.state().connected), 'friend\'s card: not connected');
 doorUp = true;
 ok(await until(() => link.state().connected, 4000), 'host PC back: reconnected by itself');
+// a short drop while sending: the message is retried quietly and gets through
+doorUp = false; door.closeAllConnections?.();
+setTimeout(() => { doorUp = true; }, 200);
+r = await fetch(L + '/v1/chat/completions', {method: 'POST', headers: LH, body: JSON.stringify({model: 'basalt-q', messages: [{role: 'user', content: 'x'}]})});
+ok(r.status === 200, 'a drop for a moment while sending: retried by itself, the friend sees no error', r.status); await r.text();
 
 // "I'm done"
 await (await fetch(L + '/v1/chat/completions', {method: 'POST', headers: LH, body: JSON.stringify({model: 'basalt-q', messages: [{role: 'user', content: 'x'}]})})).text();
