@@ -1,6 +1,9 @@
 # Changelog
 
-## 2.2.2 (not released)
+## 2.2.3 (22 Nov 2026)
+- Same as 2.2.2, which was published with an empty package file and could not be installed.
+
+## 2.2.2 (22 Nov 2026, broken: do not use)
 - An AI light on both cards: green = running, amber = asleep, red = paused while the sharer plays a game.
 - A friend's message wakes the sharer's AI by itself (through DSH's own model switcher), never during a game.
 

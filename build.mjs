@@ -7,6 +7,10 @@ const here = new URL('.', import.meta.url).pathname;
 const files = readdirSync(here + 'src').filter(f => f.endsWith('.js')).sort();
 const out = files.map(f => readFileSync(here + 'src/' + f, 'utf8')).join('');
 if (process.argv.includes('--check')) {
+  // the release files must be whole and agree on the version (2.2.2 once shipped an empty package.json)
+  const pkg = JSON.parse(readFileSync(here + 'package.json', 'utf8')), man = JSON.parse(readFileSync(here + 'manifest.json', 'utf8'));
+  const inCode = (out.match(/AMP_VERSION = '([^']+)'/) || [])[1];
+  if (!pkg.version || pkg.version !== man.version || pkg.version !== inCode) { console.error(`versions disagree: package ${pkg.version}, manifest ${man.version}, code ${inCode}`); process.exit(1); }
   const cur = readFileSync(here + 'client.js', 'utf8');
   if (cur !== out) { console.error('client.js is not the build of src/: run `node build.mjs`'); process.exit(1); }
   console.log('client.js matches src/ (' + files.join(', ') + ')');
