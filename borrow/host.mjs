@@ -69,9 +69,24 @@ export function gameRunning() {
   return false;
 }
 
+// Unloading the AI from the graphics card the way this PC loads it: a model server run as a systemd user unit listed
+// in the local model list (~/.config/local-qwen/backends.json). A PC without that list has nothing to unload here.
+export async function unloadModels(ids) {
+  let list = [];
+  try { list = JSON.parse(readFileSync(join(process.env.HOME || '', '.config/local-qwen/backends.json'), 'utf8')).backends || []; } catch { return []; }
+  const done = [];
+  for (const id of ids) {
+    const b = list.find(x => x.id === id && /^[\w@.-]+\.service$/.test(x.unit || ''));
+    if (!b) continue;
+    await new Promise(r => { const p = spawn('systemctl', ['--user', 'stop', b.unit], {stdio: 'ignore'}); p.on('exit', r); p.on('error', r); });
+    done.push(id);
+  }
+  return done;
+}
+
 export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl = fork, fetchImpl = globalThis.fetch,
   report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000, openURL = openInBrowser, admin = askAdmin, retryMs = 5000,
-  isGaming = gameRunning} = {}) {
+  isGaming = gameRunning, unload = unloadModels, unloadAfterMs = 60_000, unloadAfterDropMs = 10 * 60_000, hostQuietMs = 10 * 60_000} = {}) {
   const shown = new Set();
   const openOnce = url => { if (url && !shown.has(url)) { shown.add(url); try { openURL(url); } catch {} } };
   const dir = join(home, 'amp-radio', 'borrow');
@@ -203,7 +218,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     child.on('message', m => {
       if (m?.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
       if (m?.type === 'state') host.state = m.state;
-      if (m?.type === 'lock') setLock(!!m.on, m.friend);
+      if (m?.type === 'lock') { setLock(!!m.on, m.friend); if (m.on) { clearTimeout(unloadT); friendUsed = true; } else planUnload(m.reason); }
       if (m?.type === 'problem') report('borrow ' + m.where, m.message);
       if (m?.type === 'wake') wake(m).catch(e => report('borrow wake', e));
     });
@@ -298,8 +313,25 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       try { yield* await start(); } finally { busy(-1); }
     })();
   }
+  // After the friend is done, the AI leaves the graphics card: 1 minute after a real end, 10 minutes after a dropped
+  // connection (a bad line must not unload it while they are coming back). Never while this PC's own chats used it in the
+  // last 10 minutes, never while anything is running, never when the owner freed it for himself or DSH is closing.
+  let unloadT = null, friendUsed = false, lastHostUse = 0;
+  function planUnload(reason) {
+    clearTimeout(unloadT);
+    if (!friendUsed || ['host freed it', 'closing'].includes(reason)) return;
+    unloadT = setTimeout(() => maybeUnload().catch(e => report('borrow unload', e)), reason === 'dropped' ? unloadAfterDropMs : unloadAfterMs);
+    unloadT.unref?.();
+  }
+  async function maybeUnload() {
+    if (host.lock || hostBusy > 0 || Date.now() - lastHostUse < hostQuietMs) return;
+    const r = await loadedModels();
+    if (r.asleep || !r.models.length) return;
+    const gone = await unload(r.models.map(m => m.id));
+    if (gone.length) { friendUsed = false; report('borrow unload', 'unloaded after the friend was done: ' + gone.join(', ')); await refresh().catch(() => {}); }
+  }
   let hostBusy = 0;
-  const busy = d => { hostBusy = Math.max(0, hostBusy + d); toGate({type: 'hostBusy', n: hostBusy}); };
+  const busy = d => { lastHostUse = Date.now(); hostBusy = Math.max(0, hostBusy + d); toGate({type: 'hostBusy', n: hostBusy}); };
   function installLock() {
     const llm = svc('llm');
     if (!llm || typeof llm.stream !== 'function') return () => {};
@@ -468,7 +500,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   return {
     routes, status, startSharing, stopSharing, invite, joinInvite, leave, guard,
     async dispose() {
-      clearTimeout(resumeT); clearTimeout(hostRetryT); clearTimeout(joinT); undoLock();
+      clearTimeout(resumeT); clearTimeout(hostRetryT); clearTimeout(joinT); clearTimeout(unloadT); undoLock();
       await stopSharing({keepSetting: true}).catch(() => {});
       try { await friend.link?.close(); } catch {}
     },

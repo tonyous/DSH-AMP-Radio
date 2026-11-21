@@ -76,7 +76,9 @@ function fakeTs({state = 'Running', allowDoor = true} = {}) {
 const hostTs = fakeTs({allowDoor: false}), friendTs = fakeTs({state: 'NeedsLogin'});
 const hostHome = mkdtempSync(join(tmpdir(), 'amp-host-')), friendHome = mkdtempSync(join(tmpdir(), 'amp-friend-'));
 const problems = []; const opened = []; let adminAsked = 0;
-const quiet = {openURL: u => opened.push(u), admin: async () => { adminAsked++; return false; }, retryMs: 200, isGaming: () => false};
+const unloaded = [];
+const quiet = {openURL: u => opened.push(u), admin: async () => { adminAsked++; return false; }, retryMs: 200, isGaming: () => false,
+  unload: async ids => { unloaded.push(...ids); return ids; }, unloadAfterMs: 300, unloadAfterDropMs: 1500, hostQuietMs: 0};
 const host = createBorrow({ctx: hostDsh.ctx, home: hostHome, tailscale: hostTs.api, report: (w, e) => problems.push(w + ': ' + e), refreshMs: 300, resumeDelayMs: 100, ...quiet});
 const friend = createBorrow({ctx: friendDsh.ctx, home: friendHome, tailscale: friendTs.api, report: (w, e) => problems.push(w + ': ' + e), ...quiet});
 const call = async (side, path, body) => (await side.routes['/api/amp-borrow/' + path](new Request('http://x', {method: 'POST', body: JSON.stringify(body || {})}))).json();
@@ -131,6 +133,8 @@ ok(!hostDone && cloudDone, 'host\'s message to the lent model waits; cloud model
 ok((await call(host, 'status')).host.waitingHere === 1, 'host card can say "your message waits"');
 await call(friend, 'done');
 ok(await until(() => hostDone), '"I\'m done" from the friend: the host\'s waiting message goes at once');
+ok(await until(() => unloaded.includes('basalt-q'), 3000), 'friend done: the AI is unloaded from the graphics card by itself');
+unloaded.length = 0;
 
 // the friend waits while the host replies
 slow = true;
