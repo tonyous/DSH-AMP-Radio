@@ -9,7 +9,7 @@
 // and nothing here can stop the radio, the bar or DSH itself.
 import {fork, spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {mkdirSync, readFileSync, writeFileSync, renameSync, rmSync} from 'node:fs';
+import {mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DEFAULTS, encodeInvite, decodeInvite, isShareLink} from './protocol.mjs';
@@ -55,8 +55,23 @@ export function askAdmin(tsPath, user) {
   });
 }
 
+// Is a game running on this PC? The owner's game guard writes a state file; on any Linux PC a Steam game runs from
+// steamapps/common. A friend's message never wakes the AI while a game runs.
+export function gameRunning() {
+  try { if (JSON.parse(readFileSync(join(process.env.HOME || '', '.local/state/game-guard.json'), 'utf8')).paused === true) return true; } catch {}
+  if (process.platform !== 'linux') return false;
+  try {
+    for (const pid of readdirSync('/proc')) {
+      if (!/^\d+$/.test(pid)) continue;
+      try { if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes('steamapps/common')) return true; } catch {}
+    }
+  } catch {}
+  return false;
+}
+
 export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl = fork, fetchImpl = globalThis.fetch,
-  report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000, openURL = openInBrowser, admin = askAdmin, retryMs = 5000} = {}) {
+  report = () => {}, refreshMs = 10_000, resumeDelayMs = 10_000, openURL = openInBrowser, admin = askAdmin, retryMs = 5000,
+  isGaming = gameRunning} = {}) {
   const shown = new Set();
   const openOnce = url => { if (url && !shown.has(url)) { shown.add(url); try { openURL(url); } catch {} } };
   const dir = join(home, 'amp-radio', 'borrow');
@@ -100,7 +115,25 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
         return r.ok ? m : null;
       } catch { return null; }
     }));
-    return {models: up.filter(Boolean), providers: new Set(all.map(m => m.provider))};
+    const loaded = up.filter(Boolean);
+    // Nothing running: still offer the model this PC normally uses, so a friend's message can wake it.
+    const def = defaultRow()?.effective;
+    const sleepy = loaded.length ? [] : [all.find(m => m.provider === def?.provider && m.id === def?.model) || all[0]].filter(Boolean);
+    return {models: loaded.length ? loaded : sleepy, asleep: !loaded.length && sleepy.length > 0, providers: new Set(all.map(m => m.provider))};
+  }
+
+  // A friend's message reached a model that is not running: load it the way DSH loads any model (its own model switcher,
+  // with all of this PC's rules), with one tiny request. Never during a game.
+  let rawStream = null;
+  async function wake({provider, model}) {
+    if (isGaming()) return toGate({type: 'wakeDenied', model, reason: 'game'});
+    const llm = svc('llm');
+    const stream = rawStream || llm?.stream?.bind(llm);
+    if (!stream) return toGate({type: 'wakeDenied', model, reason: 'no-llm'});
+    const ac = new AbortController(); const t = setTimeout(() => ac.abort('wake timeout'), 6 * 60_000);
+    try { for await (const _ of stream({provider, model, messages: [{role: 'user', content: [{type: 'text', text: '.'}]}], maxTokens: 1, signal: ac.signal})) break; }
+    catch (e) { if (!ac.signal.aborted) report('borrow wake', e); }
+    finally { clearTimeout(t); ac.abort(); }
   }
 
   // ---- host: the gate, the door, the lock ---------------------------------------------------------------------------
@@ -124,7 +157,9 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   async function refresh() {
     const r = await loadedModels();
     host.localProviders = r.providers || new Set();
-    host.models = r.models.map(m => m.id);
+    host.models = r.asleep ? [] : r.models.map(m => m.id);
+    host.ai = !r.asleep && r.models.length ? 'ready' : isGaming() ? 'game' : 'asleep';
+    await toGate({type: 'ai', state: host.ai});
     if (r.error) host.problem = r.error;
     else if (!r.models.length) host.problem = HOST_SAY.noLocal;
     else if (host.problem === HOST_SAY.noLocal || host.problem === HOST_SAY.noConfig) host.problem = null;
@@ -158,7 +193,8 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     }
     const r = await loadedModels();
     if (r.error) { host.problem = r.error; return status(); }
-    host.localProviders = r.providers; host.models = r.models.map(m => m.id);
+    host.localProviders = r.providers; host.models = r.asleep ? [] : r.models.map(m => m.id);
+    host.ai = !r.asleep && r.models.length ? 'ready' : isGaming() ? 'game' : 'asleep';
     if (!settings.hostName) { settings.hostName = st.user || 'Your friend'; save(); }
     // the gate
     const child = forkImpl(GATE, [], {stdio: ['ignore', 'ignore', 'pipe', 'ipc'], execArgv: []});
@@ -169,6 +205,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       if (m?.type === 'state') host.state = m.state;
       if (m?.type === 'lock') setLock(!!m.on, m.friend);
       if (m?.type === 'problem') report('borrow ' + m.where, m.message);
+      if (m?.type === 'wake') wake(m).catch(e => report('borrow wake', e));
     });
     child.on('exit', () => {
       if (host.gate !== child) return;                 // an older helper ending late: not the one in use
@@ -187,6 +224,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     });
     if (!ready) { try { child.kill(); } catch {} host.gate = null; host.problem = HOST_SAY.gateDied; return status(); }
     host.gatePort = ready;
+    toGate({type: 'ai', state: host.ai});
     // the door
     const taken = await tailscale.doorPorts();
     // the same door every time, so invites already sent keep working
@@ -266,6 +304,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
     const llm = svc('llm');
     if (!llm || typeof llm.stream !== 'function') return () => {};
     const stream = llm.stream, prepare = llm.prepareCall;
+    rawStream = options => stream.call(llm, options);      // waking a model must not wait behind the friend's own turn
     const streamLocked = function (options) { return guard(options?.provider, options, () => stream.call(this, options)); };
     llm.stream = streamLocked;
     let prepareLocked = null;
@@ -381,7 +420,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   // ---- what the card shows ------------------------------------------------------------------------------------------
   function status() {
     return {
-      host: {sharing: host.sharing, wish: !!settings.sharing, tsIP: host.tsIP || null, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
+      host: {sharing: host.sharing, wish: !!settings.sharing, ai: host.ai || null, tsIP: host.tsIP || null, step: host.step, problem: host.problem, door: host.door ? {port: host.door.port} : null,
         name: settings.hostName, models: host.models, lock: host.lock, lockFriend: host.lockFriend, waitingHere: host.waitingHere,
         live: host.state, settings: {idleMin: settings.idleMin, turnHours: settings.turnHours, dayHours: settings.dayHours, showPing: settings.showPing}},
       friend: friend.saved ? {host: friend.saved.invite.host, providerId: friend.saved.providerId, state: friend.state, step: friend.step,

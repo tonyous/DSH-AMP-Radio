@@ -76,7 +76,7 @@ function fakeTs({state = 'Running', allowDoor = true} = {}) {
 const hostTs = fakeTs({allowDoor: false}), friendTs = fakeTs({state: 'NeedsLogin'});
 const hostHome = mkdtempSync(join(tmpdir(), 'amp-host-')), friendHome = mkdtempSync(join(tmpdir(), 'amp-friend-'));
 const problems = []; const opened = []; let adminAsked = 0;
-const quiet = {openURL: u => opened.push(u), admin: async () => { adminAsked++; return false; }, retryMs: 200};
+const quiet = {openURL: u => opened.push(u), admin: async () => { adminAsked++; return false; }, retryMs: 200, isGaming: () => false};
 const host = createBorrow({ctx: hostDsh.ctx, home: hostHome, tailscale: hostTs.api, report: (w, e) => problems.push(w + ': ' + e), refreshMs: 300, resumeDelayMs: 100, ...quiet});
 const friend = createBorrow({ctx: friendDsh.ctx, home: friendHome, tailscale: friendTs.api, report: (w, e) => problems.push(w + ': ' + e), ...quiet});
 const call = async (side, path, body) => (await side.routes['/api/amp-borrow/' + path](new Request('http://x', {method: 'POST', body: JSON.stringify(body || {})}))).json();
@@ -118,6 +118,7 @@ s = await call(host, 'status');
 ok(s.host.lock && s.host.lockFriend === 'Sam', 'host: locked, lent to Sam');
 ok(await until(async () => (await call(host, 'status')).host.live?.turn?.tokOut >= 3), 'host sees the usage live');
 ok(await until(async () => (await call(friend, 'status')).friend.state?.turn === 'yours'), 'friend\'s card: your turn');
+ok((await call(host, 'status')).host.ai === 'ready' && (await call(friend, 'status')).friend.state?.ai === 'ready', 'AI light: green on both cards while the AI runs');
 ok(await until(async () => (await call(friend, 'status')).friend.state?.pingMs >= 0), 'friend\'s card: ping', (await call(friend, 'status')).friend.state?.pingMs);
 
 // the host's own chat on the lent model waits; a cloud model does not

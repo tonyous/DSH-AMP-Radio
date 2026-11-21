@@ -1,6 +1,10 @@
 # Changelog
 
-## 2.2.1 (not released)
+## 2.2.2 (not released)
+- An AI light on both cards: green = running, amber = asleep, red = paused while the sharer plays a game.
+- A friend's message wakes the sharer's AI by itself (through DSH's own model switcher), never during a game.
+
+## 2.2.1 (22 Nov 2026)
 - Borrow my AI is one button at a time: Share my AI or Use a friend's AI, then one short line and one button.
 - It finishes by itself: Tailscale missing or signed out, the share not accepted yet, the admin password (a normal password
   window on Linux). Each page opens once; nothing to press again.

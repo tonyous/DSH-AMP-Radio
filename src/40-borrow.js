@@ -91,6 +91,10 @@
         onKeyDown: e => { if (e.key === 'Enter' && e.currentTarget.value.trim()) onText(e.currentTarget.value); }});
     }
 
+    // The AI light, the same on both cards: green = running, amber = asleep (wakes by itself when used), red = paused for a game.
+    const AI_LIGHT = {ready: ['on', 'AI running'], asleep: ['wait', 'AI asleep · wakes when used'], game: ['stop', 'AI paused while gaming']};
+    const AiLight = ({state, who}) => { const l = AI_LIGHT[state]; return l ? h(Line, {dot: l[0]}, who ? `${who}'s ${l[1].charAt(0).toLowerCase() + l[1].slice(1)}` : l[1]) : null; };
+
     function ShareSide({s, onOff}) {
       const host = s.host || {}, turn = host.live?.turn;
       const [stage, setStage] = React.useState('idle');       // idle | copy | box | done
@@ -108,10 +112,10 @@
       let line, dot = 'on';
       if (!host.sharing) { dot = 'wait'; line = host.step?.say || (host.problem && !/Stopped/.test(host.problem) ? host.problem : 'Getting ready…'); }
       else if (turn) line = `${turn.friend} is using your AI.`;
-      else if (!host.models?.length) line = 'Sharing is on. Your friend can use it once you load an AI.';
       else line = 'Sharing is on.';
       return h('section', null,
         h(Line, {dot}, line),
+        host.sharing ? h(AiLight, {state: host.ai}) : null,
         turn ? h(React.Fragment, null,
           h('div', {className: 'amp-borrow-meters'},
             h('div', null, h('span', null, 'Speed'), h('b', null, turn.replying ? `${turn.tps || 0}/s` : '–')),
@@ -148,7 +152,8 @@
       return h('section', null,
         h(Line, {dot: st.turn === 'off' ? 'stop' : st.connected ? (st.turn === 'waiting' || st.turn === 'host' ? 'wait' : 'on') : 'wait'},
           st.connected ? `Connected to ${f.host}.` : `Reconnecting to ${f.host}…`),
-        st.connected && (st.models?.length ? h(Line, null, turnLine || `New chats use ${f.host}'s AI.`) : h(Line, null, `${f.host} has no AI loaded right now. It comes back by itself.`)),
+        st.connected ? h(AiLight, {state: st.ai, who: f.host}) : null,
+        st.connected && (st.models?.length ? h(Line, null, turnLine || `New chats use ${f.host}'s AI.`) : null),
         st.connected && where ? h('button', {type: 'button', className: 'amp-borrow-small amp-borrow-ping', title: 'Show or hide the ping',
           onClick: () => { const v = !ping; setPing(v); try { localStorage.setItem('amp-borrow-ping', v ? 'on' : 'off'); } catch {} }},
           ping && Number.isFinite(st.pingMs) ? `${where} · ${st.pingMs} ms` : where) : null,

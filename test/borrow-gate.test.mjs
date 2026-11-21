@@ -41,7 +41,7 @@ const MODEL = {id: 'basalt-flash-next-iq3_xxs', name: 'Qwen 3.8 Flash-Next', con
 // ---- the gate -----------------------------------------------------------------------------------------------------------
 const dir = mkdtempSync(join(tmpdir(), 'amp-gate-'));
 const notes = [];
-const limits = {idleMs: 400, dropMs: 300, keepaliveMs: 100, heartbeatMs: 200, perMinute: 200, maxBodyBytes: 64 * 1024, hostWaitMs: 800};
+const limits = {wakeMs: 600, wakePollMs: 50, idleMs: 400, dropMs: 300, keepaliveMs: 100, heartbeatMs: 200, perMinute: 200, maxBodyBytes: 64 * 1024, hostWaitMs: 800};
 const gate = createGate({stateDir: dir, hostName: 'Alex', models: [MODEL], limits, notify: m => notes.push(m)});
 const port = await gate.listen(0);
 const base = `http://127.0.0.1:${port}`;
@@ -167,7 +167,26 @@ const saved = MODEL.upstream.baseURL;
 gate.setModels([{...MODEL, upstream: {...MODEL.upstream, baseURL: 'http://127.0.0.1:9/v1'}}]);
 r = await post('/v1/chat/completions', A.key, JSON.stringify({model: MODEL.id, messages: [{role: 'user', content: 'x'}]}));
 j = await r.json();
-ok(r.status === 503 && j.error.code === 'not_loaded', 'model not loaded: plain message', j.error?.message);
+ok(r.status === 503 && j.error.code === 'not_loaded', 'model not loaded and it did not wake: plain message', j.error?.message);
+ok(notes.some(n => n.type === 'wake' && n.model === MODEL.id), 'the host was asked to wake its AI');
+// the host's AI wakes while the friend waits: the message goes through by itself
+const sleepy = http.createServer(); await new Promise(r => sleepy.listen(0, '127.0.0.1', r)); const sp = sleepy.address().port; sleepy.close();
+gate.setModels([{...MODEL, upstream: {...MODEL.upstream, baseURL: `http://127.0.0.1:${sp}/v1`}}]);
+notes.length = 0;
+const pw = post('/v1/chat/completions', A.key, chatBody());
+await sleep(150);
+ok(notes.some(n => n.type === 'wake'), 'asleep: wake asked for');
+const awake = http.createServer((q, s2) => model.emit('request', q, s2)); await new Promise(r => awake.listen(sp, '127.0.0.1', r));
+r = await pw; t = await r.text();
+ok(r.status === 200 && t.includes('[DONE]'), 'the AI woke: the friend\'s message went through, nothing to press');
+awake.close(); gate.release();
+// a game is running on the host: the friend is told, nothing loads
+gate.setModels([{...MODEL, upstream: {...MODEL.upstream, baseURL: 'http://127.0.0.1:9/v1'}}]);
+const pg = post('/v1/chat/completions', A.key, JSON.stringify({model: MODEL.id, messages: [{role: 'user', content: 'x'}]}));
+await sleep(100); gate.wakeDenied(MODEL.id, 'game');
+r = await pg; j = await r.json();
+ok(r.status === 503 && j.error.code === 'gaming', 'host playing a game: "Your friend is playing a game"', j.error?.message);
+gate.release();
 gate.setModels([{...MODEL, upstream: {...MODEL.upstream, baseURL: saved}}]);
 mode = 'context';
 r = await post('/v1/chat/completions', A.key, JSON.stringify({model: MODEL.id, messages: [{role: 'user', content: 'x'}]}));

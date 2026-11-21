@@ -64,7 +64,7 @@ export function createLink(options = {}) {
           const data = (block.match(/^data: (.*)$/m) || [])[1];
           if (!ev || !data) continue;
           let d; try { d = JSON.parse(data); } catch { continue; }
-          if (ev === 'state') update({turn: d.turn, secondsLeft: d.secondsLeft, paused: !!d.paused, models: Array.isArray(d.models) ? d.models : [], host: d.host || state.host});
+          if (ev === 'state') update({turn: d.turn, secondsLeft: d.secondsLeft, paused: !!d.paused, ai: d.ai || null, models: Array.isArray(d.models) ? d.models : [], host: d.host || state.host});
           if (ev === 'stopped') update({paused: true, turn: 'off', problem: d.message || null});
         }
       }

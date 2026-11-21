@@ -63,6 +63,7 @@ export function createGate(options = {}) {
 
   // ---- live state ---------------------------------------------------------------------------------------------------
   let models = [];
+  let ai = 'ready';           // the host's AI: ready | asleep | game (the light on both cards)
   let paused = false;
   let hostBusy = 0;
   let turn = null;            // {friendId, since, last, inflight: Map, idleT, dropT, warnT, tokIn, tokOut, replies}
@@ -71,6 +72,20 @@ export function createGate(options = {}) {
   const hostIdle = new Set(); // resolvers
   const rate = new Map();
   const meter = {window: [], tps: 0};
+  // Waking the host's AI: the first message to a model that is not running asks the host to load it (never during a
+  // game), then waits for it, keeping the line alive. Every message waiting for the same model waits together.
+  const wakes = new Map();   // model id -> {until, denied}
+  const refused = e => e?.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED|fetch failed/i.test(String(e?.cause?.code || e?.message));
+  async function waitAwake(model, signal) {
+    let w = wakes.get(model.id);
+    if (!w || w.until < now()) { w = {until: now() + L.wakeMs, denied: null}; wakes.set(model.id, w); send({type: 'wake', provider: model.provider, model: model.id}); }
+    const headers = model.upstream.apiKey ? {authorization: 'Bearer ' + model.upstream.apiKey} : {};
+    while (now() < w.until && !signal.aborted && !w.denied) {
+      try { const r = await o.fetchImpl(model.upstream.baseURL.replace(/\/+$/, '') + '/models', {headers, signal: AbortSignal.timeout(2000)}); if (r.ok) { wakes.delete(model.id); return 'up'; } } catch {}
+      await new Promise(r => setTimeout(r, L.wakePollMs ?? 2000));
+    }
+    return w.denied || 'timeout';
+  }
 
   const setModels = list => {
     models = (Array.isArray(list) ? list : []).filter(m => m && typeof m.id === 'string' && m.upstream?.baseURL)
@@ -86,7 +101,7 @@ export function createGate(options = {}) {
     return Math.max(0, Math.round(left / 1000));
   };
   const viewFor = f => ({
-    protocol: PROTOCOL, host: o.hostName, paused,
+    protocol: PROTOCOL, host: o.hostName, paused, ai,
     turn: paused ? 'off' : turn ? (turn.friendId === f.id ? 'yours' : 'other') : waiting.has(f.id) ? 'waiting' : hostBusy > 0 ? 'host' : 'free',
     secondsLeft: secondsLeft(f), models: offerOf(models),
     limits: {idleMs: L.idleMs, turnMs: L.turnMs, dayMs: L.dayMs, perMinute: L.perMinute},
@@ -94,7 +109,7 @@ export function createGate(options = {}) {
   const hostView = () => {
     const f = turn && friendById(turn.friendId);
     return {
-      sharing: !paused, hostBusy, models: models.map(m => m.id),
+      sharing: !paused, hostBusy, ai, models: models.map(m => m.id),
       turn: turn ? {friend: f?.name ?? '?', friendId: turn.friendId, since: turn.since, secondsLeft: f ? secondsLeft(f) : null,
         replying: turn.inflight.size > 0, tokIn: turn.tokIn, tokOut: turn.tokOut + (turn.live || 0), replies: turn.replies, tps: meter.tps,
         connected: [...subs].some(s => s.friendId === turn.friendId)} : null,
@@ -292,9 +307,20 @@ export function createGate(options = {}) {
     try {
       const headers = {'content-type': 'application/json'};
       if (model.upstream.apiKey) headers.authorization = 'Bearer ' + model.upstream.apiKey;
-      const up = await o.fetchImpl(model.upstream.baseURL.replace(/\/+$/, '') + '/chat/completions',
+      const call = () => o.fetchImpl(model.upstream.baseURL.replace(/\/+$/, '') + '/chat/completions',
         {method: 'POST', headers, body: JSON.stringify(clean), signal: ac.signal});
-      if (!up.ok) {
+      let up;
+      for (let tries = 0; ; tries++) {
+        let asleep = false;
+        try { up = await call(); asleep = up.status === 503 && /load/i.test(await up.clone().text().catch(() => '')); }
+        catch (e) { if (ac.signal.aborted || !refused(e)) throw e; asleep = true; }
+        if (!asleep || tries >= 1) break;
+        const woke = await waitAwake(model, ac.signal);
+        if (woke === 'game') { status = 'host gaming'; reply.fail(503, SAY.gaming, 'gaming'); up = null; break; }
+        if (woke !== 'up') { if (ac.signal.aborted) throw new Error('aborted'); status = 'not loaded'; reply.fail(503, SAY.notLoaded, 'not_loaded'); up = null; break; }
+      }
+      if (!up) { /* already answered */ }
+      else if (!up.ok) {
         const text = (await up.text().catch(() => '')).slice(0, 2000);
         status = 'upstream ' + up.status;
         reply.fail(...upstreamProblem(up.status, text));
@@ -421,6 +447,8 @@ export function createGate(options = {}) {
     },
     friends: () => friends.map(({fp, ...f}) => ({...f, login: f.login ? f.login.replace(/^(.).*(@.*)$/, '$1…$2') : null})),
     setModels,
+    wakeDenied(modelId, reason) { const w = wakes.get(modelId); if (w) w.denied = reason; else wakes.set(modelId, {until: now() + 60_000, denied: reason}); },
+    setAi(state) { if (['ready', 'asleep', 'game'].includes(state) && state !== ai) { ai = state; broadcast(); } },
     setHostBusy(n) {
       hostBusy = Math.max(0, Number(n) || 0);
       if (hostBusy <= 0) for (const r of [...hostIdle]) r();
@@ -454,6 +482,8 @@ if (process.send && process.argv[1] && import.meta.url === pathToFileURL(process
       } else if (gate) {
         if (m.type === 'models') gate.setModels(m.models);
         else if (m.type === 'hostBusy') gate.setHostBusy(m.n);
+        else if (m.type === 'wakeDenied') gate.wakeDenied(m.model, m.reason);
+        else if (m.type === 'ai') gate.setAi(m.state);
         else if (m.type === 'stop') { gate.forceStop(); reply({type: 'stopped', id: m.id}); }
         else if (m.type === 'resume') gate.resume();
         else if (m.type === 'release') gate.release();

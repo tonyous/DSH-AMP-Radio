@@ -6,7 +6,7 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
 
     // Always-available offline stations (no network needed).
-    const AMP_VERSION = '2.2.1';
+    const AMP_VERSION = '2.2.2';
     const reported = new Set();
     function ampReport(where, err) {
       const key = where + ':' + String(err?.message || err).slice(0, 80);
