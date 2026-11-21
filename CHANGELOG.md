@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.5 (22 Nov 2026)
+- Borrow my AI never uses the AI twice at once: a friend's message waits while anything else on the sharer's PC is using it.
+- Games are recognised from Steam, Epic, GOG, Battle.net, EA, Ubisoft, Riot, Xbox, Lutris, Heroic and Wine, on Linux,
+  Windows and macOS; the AI is never woken for a friend during a game.
+- The card: friends list with Remove, your name for friends (Change), AMP's stripes on every main button, one stripe as
+  each status mark, the stripes wave while a pressed button is working. The panel shows the official AMP wordmark.
+
 ## 2.2.4 (22 Nov 2026)
 - After your friend is done, your AI leaves the graphics card by itself (1 minute after they finish, 10 minutes after a
   dropped connection so a bad line never unloads it, never if you used it yourself lately).
