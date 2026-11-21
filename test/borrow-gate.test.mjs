@@ -112,8 +112,10 @@ mode = 'long';
 const first = post('/v1/chat/completions', A.key, chatBody());
 await sleep(120);
 r = await post('/v1/chat/completions', A.key, chatBody());
-ok(r.status === 429, 'second message while one is running: one at a time', r.status);
-await (await first).text();
+ok(r.status === 200, 'a second message while one is running (helpers in parallel): goes through, never refused', r.status);
+await r.text(); await (await first).text();
+const burst = await Promise.all([...Array(25)].map(() => post('/v1/chat/completions', A.key, JSON.stringify({model: MODEL.id, messages: [{role: 'user', content: 'x'}]})).then(r => r.status)));
+ok(burst.every(c => c === 200), '25 messages at once from parallel helpers: all answered', [...new Set(burst)].join(','));
 mode = 'ok';
 
 // idle: free after the quiet time
@@ -216,7 +218,7 @@ ok(r.status === 503, 'nothing shared at all: "not loaded"', r.status);
 gate.setModels([MODEL]);
 
 // rate limit (its own gate, 5 a minute)
-const g5 = createGate({models: [MODEL], limits: {...limits, perMinute: 5}});
+const g5 = createGate({models: [MODEL], limits: {...limits, perMinute: 5, minPerMinute: 0}});
 const p5 = await g5.listen(0); const R = g5.addFriend({name: 'R'});
 let codes = [];
 for (let i = 0; i < 8; i++) codes.push((await fetch(`http://127.0.0.1:${p5}/v1/chat/completions`, {method: 'POST', headers: H(R.key, 'r@example.com'), body: '{'})).status);

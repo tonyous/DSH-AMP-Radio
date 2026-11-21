@@ -11,7 +11,7 @@ export const DEFAULTS = Object.freeze({
   dayMs: 4 * 3600_000,
   dropMs: 45_000,
   warnMs: 5 * 60_000,
-  perMinute: 60,                // an agent with tools sends many quick steps
+  perMinute: 600,               // only a guard against a runaway loop: agents with helpers send bursts of steps
   maxBodyBytes: 8 * 1024 * 1024,
   inviteMs: 24 * 3600_000,
   hostWaitMs: 15 * 60_000,

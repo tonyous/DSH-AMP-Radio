@@ -270,7 +270,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
       const t = setTimeout(() => resolve(null), 8000);
       child.once('message', function first(m) { if (m?.type === 'ready') { clearTimeout(t); resolve(m.port); } else child.once('message', first); });
       try {
-        child.send({type: 'start', stateDir: join(dir, 'gate'), hostName: settings.hostName, models: r.models, limits: {
+        child.send({type: 'start', stateDir: join(dir, 'gate'), hostName: settings.hostName, models: r.models, selfLogin: st.selfLogin, limits: {
           ...DEFAULTS, idleMs: settings.idleMin * 60_000, turnMs: settings.turnHours * 3600_000, dayMs: settings.dayHours * 3600_000}});
       } catch { clearTimeout(t); resolve(null); }
     });

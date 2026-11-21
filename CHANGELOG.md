@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.9 (22 Nov 2026)
+- Borrow my AI never refuses a friend's agent: helpers working in parallel all go through (the AI queues them), and the
+  per-minute limit is only a guard against a runaway loop (600). Seen live: parallel researchers were refused at 20 a minute.
+- A knock from the sharer's own PC no longer adds the sharer to their own friends list.
+
 ## 2.2.8 (22 Nov 2026)
 - AMP keeps itself up to date: new releases install through DeepSeek Harness's own plugin manager, never while a friend is
   borrowing, while any chat runs or during a game. If DSH needs a restart to finish, the AMP panel says so in one line.

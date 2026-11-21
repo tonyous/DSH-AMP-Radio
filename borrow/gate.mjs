@@ -29,6 +29,9 @@ export function createGate(options = {}) {
     notify: () => {}, fetchImpl: globalThis.fetch, ...options,
   };
   const L = {...DEFAULTS, ...(options.limits || {})};
+  // An agent with helpers sends bursts of steps at once (seen live, 22 Nov 2026: parallel researchers hit 20 a minute).
+  // The limit is only a guard against a runaway loop, never against normal use; an older host passing 20 is raised too.
+  L.perMinute = Math.max(Number(L.perMinute) || 0, L.minPerMinute ?? 600);
   const now = () => o.now();
   const send = msg => { try { o.notify(msg); } catch {} };
 
@@ -204,7 +207,7 @@ export function createGate(options = {}) {
       // No AMP key: the Tailscale share is the invite. Only Tailscale's door can add this header, and only people this PC
       // is shared with can reach the door, so the login is proof enough. A removed friend stays removed.
       const login = String(req.headers['tailscale-user-login'] || '').trim().toLowerCase();
-      if (o.openToShared === false || !login) return {error: [401, SAY.badKey, 'bad_key']};
+      if (o.openToShared === false || !login || (o.selfLogin && login === String(o.selfLogin).toLowerCase())) return {error: [401, SAY.badKey, 'bad_key']};
       let f = friends.find(x => x.login === login);
       if (f?.revoked) return {error: [403, SAY.removed, 'removed']};
       if (!f) {
@@ -314,7 +317,7 @@ export function createGate(options = {}) {
     if (!model) return json(res, models.length ? 404 : 503, openaiError(models.length ? SAY.unknownModel : SAY.notLoaded, models.length ? 'unknown_model' : 'not_loaded'));
     let clean;
     try { clean = cleanChatRequest(body, model); } catch { return json(res, 400, openaiError(SAY.badRequest, 'bad_request')); }
-    if (turn?.friendId === f.id && turn.inflight.size) return json(res, 429, openaiError(SAY.oneAtATime, 'one_at_a_time'), {'retry-after': '5'});
+    // several of the friend's own messages at once (helpers working in parallel): all go through; the model server queues
     if (L.dayMs - dayUsed(f) <= 0) return json(res, 403, openaiError(SAY.dayOver, 'day_limit'));
 
     const ac = new AbortController();
@@ -333,7 +336,7 @@ export function createGate(options = {}) {
     }
     // Anything else on the host using this AI right now (Hermes, a script, another app, not only DSH)? Ask the model
     // server itself: llama-style servers list their busy slots. Wait for it, so nobody's reply is ever cut or mixed.
-    if (await modelBusy(model)) {
+    if (!(turn?.friendId === f.id && turn.inflight.size) && await modelBusy(model)) {   // busy with their own work = not "someone else"
       waiting.add(f.id); broadcast();
       const until = now() + L.hostWaitMs;
       while (!ac.signal.aborted && now() < until && await modelBusy(model)) await new Promise(r => setTimeout(r, L.wakePollMs ?? 1000));
@@ -525,7 +528,7 @@ if (process.send && process.argv[1] && import.meta.url === pathToFileURL(process
   process.on('message', async m => {
     try {
       if (m?.type === 'start' && !gate) {
-        gate = createGate({stateDir: m.stateDir, hostName: m.hostName, limits: m.limits, models: m.models,
+        gate = createGate({stateDir: m.stateDir, hostName: m.hostName, limits: m.limits, models: m.models, selfLogin: m.selfLogin,
           requireIdentity: m.requireIdentity !== false, notify: reply});
         const port = await gate.listen(m.port || 0);
         reply({type: 'ready', port});
