@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.4 (22 Nov 2026)
+- After your friend is done, your AI leaves the graphics card by itself (1 minute after they finish, 10 minutes after a
+  dropped connection so a bad line never unloads it, never if you used it yourself lately).
+- A network that blocks Tailscale (some school, work or hotel Wi-Fi) is recognised: one line, and it keeps trying.
+
 ## 2.2.3 (22 Nov 2026)
 - Same as 2.2.2, which was published with an empty package file and could not be installed.
 

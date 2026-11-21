@@ -1,6 +1,6 @@
 {
   "name": "dsh-amp-radio",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "description": "AMP Radio and the AMP Bar for DeepSeek Harness: internet radio with a live visualiser, plus every chat stat in one tidy bar (now with a live task timer and time to finish) that you can put at the top of the chat or under the message box, with an on/off switch for each.",
   "author": "AMP",
