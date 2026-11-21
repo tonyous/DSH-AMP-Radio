@@ -357,11 +357,15 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   function planUnload(reason) {
     clearTimeout(unloadT);
     if (!friendUsed || ['host freed it', 'closing'].includes(reason)) return;
-    unloadT = setTimeout(() => maybeUnload().catch(e => report('borrow unload', e)), reason === 'dropped' ? unloadAfterDropMs : unloadAfterMs);
+    unloadT = setTimeout(() => maybeUnload(reason).catch(e => report('borrow unload', e)), reason === 'dropped' ? unloadAfterDropMs : unloadAfterMs);
     unloadT.unref?.();
   }
-  async function maybeUnload() {
+  async function maybeUnload(reason) {
     if (host.lock || hostBusy > 0 || Date.now() - lastHostUse < hostQuietMs) return;
+    if (reason !== 'friend is done' && host.state?.connected?.length) {   // still there, only pausing: look again in 2 min
+      clearTimeout(unloadT); unloadT = setTimeout(() => maybeUnload(reason).catch(e => report('borrow unload', e)), Math.max(unloadAfterMs, 120_000)); unloadT.unref?.();
+      return;
+    }
     const r = await loadedModels();
     if (r.asleep || !r.models.length) return;
     const gone = await unload(r.models.map(m => m.id));

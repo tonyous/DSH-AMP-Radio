@@ -103,10 +103,11 @@ their PC; only the thinking happens on yours. It works over [Tailscale](https://
 
 Click the **AMP** button, then the **link** button (two circles) at the top of the panel.
 
-**Share yours:** press **Share my AI**, then **Invite a friend**. In the Tailscale page that opens, press **Share** and
-**Copy link**, then press **I copied it**. The invite is now copied: paste it to your friend.
+**Share yours:** press **Share my AI**, then **Invite a friend**. In the Tailscale page that opens, press **Share**, copy the
+link and send it to your friend. If your Tailscale rules would block them, the card shows one button that fixes it.
 
-**Use a friend's:** copy the invite they sent and press **Paste invite**. New chats now use their AI.
+**Use a friend's:** press **Use a friend's AI**. It looks for your friend's AI by itself; if it asks, copy the link they sent
+and press **Paste link**. New chats now use their AI.
 
 Everything else happens by itself: installing or signing in to Tailscale opens the right page and carries on when it is
 done, a lost connection reconnects, and closing and opening DeepSeek Harness on either side keeps you connected.
@@ -147,6 +148,6 @@ MIT, see [LICENSE](./LICENSE).
 
 ## What's new
 
-See [CHANGELOG.md](CHANGELOG.md). Latest: **2.2.5** makes Borrow my AI steadier and simpler.
+See [CHANGELOG.md](CHANGELOG.md). Latest: **2.2.7**: the Tailscale link is the whole invite.
 
 Want to change it? See [docs/DEVELOPING.md](docs/DEVELOPING.md).

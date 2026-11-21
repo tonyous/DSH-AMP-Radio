@@ -12,6 +12,7 @@ import http from 'node:http';
 import {readFileSync, writeFileSync, renameSync, mkdirSync, appendFileSync, statSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {gunzipSync} from 'node:zlib';
 import {PROTOCOL, DEFAULTS, SAY, newKey, fingerprint, sameFingerprint, newId, openaiError, cleanChatRequest, offerOf} from './protocol.mjs';
 
 const json = (res, status, body, extra = {}) => {
@@ -110,7 +111,7 @@ export function createGate(options = {}) {
     return Math.max(0, Math.round(left / 1000));
   };
   const viewFor = f => ({
-    protocol: PROTOCOL, host: o.hostName, paused, ai,
+    protocol: PROTOCOL, host: o.hostName, paused, ai, accepts: ['gzip'],
     turn: paused ? 'off' : turn ? (turn.friendId === f.id ? 'yours' : 'other') : waiting.has(f.id) ? 'waiting' : hostBusy > 0 ? 'host' : 'free',
     secondsLeft: secondsLeft(f), models: offerOf(models),
     limits: {idleMs: L.idleMs, turnMs: L.turnMs, dayMs: L.dayMs, perMinute: L.perMinute},
@@ -146,7 +147,9 @@ export function createGate(options = {}) {
     waiting.delete(f.id);
     const left = Math.min(L.turnMs, L.dayMs - dayUsed(f));
     if (left > L.warnMs) turn.warnT = setTimeout(() => broadcast(), left - L.warnMs);
-    turn.endT = setTimeout(() => endTurn(left >= L.turnMs ? 'turn limit' : 'day limit'), Math.max(0, left));
+    const why = left >= L.turnMs ? 'turn limit' : 'day limit';
+    const endWhenQuiet = () => { if (!turn) return; if (turn.inflight.size) { turn.limitReached = why; } else endTurn(why); };
+    turn.endT = setTimeout(endWhenQuiet, Math.max(0, left));
     audit({friend: f.id, event: 'turn start'});
     send({type: 'lock', on: true, friend: f.name});
     broadcast();
@@ -300,7 +303,13 @@ export function createGate(options = {}) {
       return json(res, 413, openaiError(SAY.tooBig, 'too_big'), {connection: 'close'});
     }
     let body;
-    try { body = JSON.parse(raw.toString('utf8')); } catch { return json(res, 400, openaiError(SAY.badRequest, 'bad_request')); }
+    try {
+      if (/gzip/i.test(String(req.headers['content-encoding'] || ''))) {
+        raw = gunzipSync(raw, {maxOutputLength: L.maxBodyBytes * 4});
+        if (raw.length > L.maxBodyBytes * 4) throw new Error('too big');
+      }
+      body = JSON.parse(raw.toString('utf8'));
+    } catch { return json(res, 400, openaiError(SAY.badRequest, 'bad_request')); }
     const model = models.find(m => m.id === body?.model);
     if (!model) return json(res, models.length ? 404 : 503, openaiError(models.length ? SAY.unknownModel : SAY.notLoaded, models.length ? 'unknown_model' : 'not_loaded'));
     let clean;
@@ -393,6 +402,7 @@ export function createGate(options = {}) {
         turn.inflight.delete(id);
         turn.tokIn += acc.in; turn.tokOut += acc.out || acc.deltas; turn.live = 0; turn.replies++; turn.last = now();
         touchIdle();
+        if (turn.limitReached && !turn.inflight.size) { const why = turn.limitReached; setTimeout(() => endTurn(why, {abort: false}), 0); }
         if (res.destroyed && !ac.signal.aborted) scheduleDrop();
       }
       audit({friend: f.id, event: 'reply', model: model.id, ms: now() - started, tokIn: acc.in, tokOut: acc.out, status});

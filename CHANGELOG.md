@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.7 (22 Nov 2026)
+- The Tailscale share link is the invite: share your PC in Tailscale and send your friend that link. Their DSH finds your
+  shared AI by itself (it even looks before they paste anything). Older AMP1- invites still work.
+- Your card notices when your Tailscale rules would block friends and fixes it with one button (copies the line, opens Tailscale).
+- Remove keeps a friend out, even through the share. Refused knocks are written down (the reason only).
+- Steadier with real use: the AI stays loaded while a friend is only pausing; a time limit never cuts a reply mid-way;
+  agents with tools can send up to 60 steps a minute; big chats are compressed on the way when both sides support it.
+
 ## 2.2.6 (22 Nov 2026)
 - The Borrow page could open partly off the bottom of the window when the AMP button sits at the top. It now opens in the same place and size as the radio panel.
 

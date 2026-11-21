@@ -76,6 +76,11 @@ ok(r.status === 200 && t.includes('t3') && t.includes('[DONE]'), 'a streamed rep
 ok(gate.status().turn?.friend === 'Sam', 'it is the friend\'s turn on the host');
 ok(await until(() => link.state().turn === 'yours'), 'the friend\'s card says it is their turn');
 
+// a big chat (200 KB) goes compressed when the gate says it can read it, and arrives whole
+r = await fetch(L + '/v1/chat/completions', {method: 'POST', headers: LH, body: JSON.stringify({model: 'basalt-q', stream: true, messages: [{role: 'user', content: 'word '.repeat(40000)}]})});
+t = await r.text();
+ok(r.status === 200 && t.includes('[DONE]'), 'a 200 KB chat goes through compressed', r.status);
+
 // the link only serves this PC's DSH
 r = await fetch(L + '/v1/models');
 ok(r.status === 401, 'no local key: refused', r.status);

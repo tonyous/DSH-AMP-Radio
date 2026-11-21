@@ -6,6 +6,7 @@
 // itself and turns every problem into one plain sentence. The friend's DSH settings never hold the host's address or key.
 import http from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
 import {newKey, openaiError} from './protocol.mjs';
 
 const json = (res, status, body) => {
@@ -41,7 +42,7 @@ export function createLink(options = {}) {
   };
 
   // ---- the live line to the host ------------------------------------------------------------------------------------
-  let closed = false, evAbort = null, tries = 0, retryT = null;
+  let closed = false, evAbort = null, tries = 0, retryT = null, gzipOK = false;
   async function listen() {
     if (closed) return;
     evAbort = new AbortController();
@@ -64,6 +65,7 @@ export function createLink(options = {}) {
           const data = (block.match(/^data: (.*)$/m) || [])[1];
           if (!ev || !data) continue;
           let d; try { d = JSON.parse(data); } catch { continue; }
+          if (ev === 'state') gzipOK = Array.isArray(d.accepts) && d.accepts.includes('gzip');
           if (ev === 'state') update({turn: d.turn, secondsLeft: d.secondsLeft, paused: !!d.paused, ai: d.ai || null, models: Array.isArray(d.models) ? d.models : [], host: d.host || state.host});
           if (ev === 'stopped') update({paused: true, turn: 'off', problem: d.message || null});
         }
@@ -112,12 +114,17 @@ export function createLink(options = {}) {
       // The message is read first, so a bad moment on the line (high ping, Wi-Fi change, the host's door reopening) is
       // retried quietly, up to 4 times over ~15 s, before the friend ever sees a problem. Once words flow, no retry.
       let body;
-      if (req.method === 'POST') { const parts = []; for await (const c of req) parts.push(c); body = Buffer.concat(parts); }
+      const extra = {};
+      if (req.method === 'POST') {
+        const parts = []; for await (const c of req) parts.push(c); body = Buffer.concat(parts);
+        // a big chat goes over a slow or far line faster compressed (only when the host's gate says it can read it)
+        if (gzipOK && body.length > 32 * 1024) { body = gzipSync(body, {level: 4}); extra['content-encoding'] = 'gzip'; }
+      }
       let up;
       for (let i = 0; ; i++) {
         try {
           up = await o.fetchImpl(door + path, {method: req.method, signal: ac.signal, body,
-            headers: {...auth, 'content-type': req.headers['content-type'] || 'application/json', accept: req.headers.accept || '*/*'}});
+            headers: {...auth, ...extra, 'content-type': req.headers['content-type'] || 'application/json', accept: req.headers.accept || '*/*'}});
           if ((up.status === 502 || up.status === 504) && i < o.retries.length) { await up.arrayBuffer().catch(() => {}); throw new Error('door ' + up.status); }
           break;
         } catch (e) {
