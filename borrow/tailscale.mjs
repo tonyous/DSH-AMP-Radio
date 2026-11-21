@@ -111,6 +111,9 @@ export function setupStep(st, now = Date.now()) {
   if (st.state === 'NeedsMachineAuth') return {step: 'machine-auth', say: TS_SAY.machineAuth};
   if (st.keyExpiry && st.keyExpiry < now) return {step: 'expired', say: TS_SAY.expired};
   if (st.state !== 'Running') return {step: 'stopped', say: TS_SAY.stopped};
+  // A network that blocks Tailscale itself (some school, work or hotel Wi-Fi): Tailscale says so in its health list.
+  // Nothing on this PC can get through that; the card says to try another network and keeps checking by itself.
+  if ((st.health || []).some(h => /coordination server|could not connect to any relay|DERP|unable to connect/i.test(String(h)))) return {step: 'network', say: TS_SAY.noNetwork};
   const days = st.keyExpiry ? Math.floor((st.keyExpiry - now) / 86_400_000) : null;
   return {step: 'ready', warn: days !== null && days <= 14 ? TS_SAY.expiringSoon(Math.max(0, days)) : null};
 }

@@ -255,7 +255,7 @@ export function createBorrow({ctx, home, tailscale = createTailscale(), forkImpl
   async function stopSharing({keepSetting = false, force = false} = {}) {
     clearInterval(refreshT); refreshT = null; clearTimeout(hostRetryT);
     if (!keepSetting) { settings.sharing = false; save(); }
-    host.step = null; host.askedAdmin = false;
+    host.step = null; host.askedAdmin = false; host.problem = null;
     const child = host.gate;
     if (child) {
       if (force) {                                                    // the friend is told first, mid-reply if need be

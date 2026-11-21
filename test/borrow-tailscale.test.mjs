@@ -27,6 +27,7 @@ ok(setupStep(readStatus(status({BackendState: 'NeedsMachineAuth'})), now).step =
 ok(setupStep(readStatus(status({Self: {DNSName: 'x.', KeyExpiry: '2026-11-01T00:00:00Z'}})), now).step === 'expired', 'key expired: sign in again');
 const soon = setupStep(readStatus(status({Self: {DNSName: 'x.', KeyExpiry: '2026-11-30T00:00:00Z'}})), now);
 ok(soon.step === 'ready' && /7 days/.test(soon.warn), 'key expires within 14 days: a warning ahead', soon.warn);
+ok(setupStep(readStatus(status({Health: ['Unable to connect to the Tailscale coordination server to synchronize the state of your tailnet.']})), now).step === 'network', 'a network that blocks Tailscale: "try another network", keeps checking');
 ok(versionAtLeast('1.104.7') && versionAtLeast('1.86.0') && !versionAtLeast('1.85.9') && !versionAtLeast('garbage'), 'version compare');
 
 // ping, in the exact forms Tailscale prints (the first one recorded on the owner's PC, 22 Nov 2026)
