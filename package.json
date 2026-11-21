@@ -1,8 +1,8 @@
 {
   "name": "dsh-amp-radio",
-  "version": "2.0.2",
+  "version": "2.2.0",
   "private": true,
-  "description": "AMP Radio and the AMP Bar for DeepSeek Harness: internet radio with a live visualiser, plus every chat stat in one tidy bar you can put at the top of the chat or under the message box, with an on/off switch for each.",
+  "description": "AMP Radio and the AMP Bar for DeepSeek Harness: internet radio with a live visualiser, plus every chat stat in one tidy bar (now with a live task timer and time to finish) that you can put at the top of the chat or under the message box, with an on/off switch for each.",
   "author": "AMP",
   "keywords": [
     "audio",
@@ -24,6 +24,7 @@
   "files": [
     "index.js",
     "client.js",
+    "borrow/*.mjs",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
@@ -43,5 +44,9 @@
       ]
     }
   },
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs --check && node test/tasks.test.cjs && node test/chaos-page.test.cjs && node test/chaos-host.test.mjs && node test/borrow-gate.test.mjs && node test/borrow-link.test.mjs && node test/borrow-tailscale.test.mjs && node test/borrow-host.test.mjs"
+  }
 }

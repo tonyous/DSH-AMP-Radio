@@ -16,6 +16,7 @@ On a phone they fold into one clean line.
 |---|---|
 | **AMP Bar** | All the little stats under the message box (speed, tokens, CPU, RAM, GPU, context and so on) in one bar, at the top of the chat or at the bottom. |
 | **Fits any screen** | Two neat lines in the header. What does not fit goes into a **+N** button. Nothing gets cut off, on a wide monitor or a phone. |
+| **Task timer** | While the AI works through a task list: which task it is on, a live clock for that task, and about how long the whole list has left. It learns from how long tasks really take. |
 | **Your choice of stats** | An on/off switch for every stat. Saved on your DeepSeek Harness, so your phone and your PC match. |
 | **AMP Radio** | Thousands of internet radio stations, search, favourites, and a visualiser that moves with the music. |
 | **AMP button where you want it** | In the bar next to the stats, or floating so you can drag it anywhere. |
@@ -45,6 +46,18 @@ Numbers update in place: the stats never jump around when a value changes.
 Prefer them under the message box? Choose **Bottom** in the settings. They wrap onto more lines instead of running off the screen.
 
 ![The stats under the message box](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.2/docs/screenshots/bottom-bar.png)
+
+### Task timer
+
+When the AI makes a task list, two pills appear in the bar:
+
+- **● Task 4/7 · 6:30 left**: the task it is on and about how long that task has left. The dot pulses while it works,
+  turns green when everything is done and red if a task runs over. A thin line under it fills as the task goes.
+- **Finish ~1 h 11 min**: about how long the whole list has left.
+
+While DeepSeek Harness compacts a long chat, the clock **pauses** (amber dot, "paused · compacting") and that time is not
+counted. The times are estimates. They start from the AI's own guesses and get better as tasks finish.
+Turn either pill off in the settings. If you also use the task-timers plugin, both show the same numbers.
 
 ### On a phone
 
@@ -83,6 +96,30 @@ Two places, same settings:
 
 ![AMP Radio](https://cdn.jsdelivr.net/gh/tonyous/DSH-AMP-Radio@v2.0.2/docs/screenshots/radio-panel.png)
 
+### Borrow my AI
+
+Lend the AI running on your PC to a friend's DeepSeek Harness, anywhere in the world, or use theirs. It works over
+[Tailscale](https://tailscale.com) (free), which both of you need installed and signed in.
+
+**Share yours**
+1. Click the **AMP** button, then the **link** button (two circles) at the top of the panel.
+2. Turn on **Share my AI**. The first time on Linux, the card shows one admin command to run once.
+3. Open **Invite a friend**: press **Open Tailscale**, press **Share** on this PC and copy the link, paste it into the card,
+   add your friend's name, then **Make invite** and **Copy invite**. Send them the code.
+
+**Use a friend's**
+1. Open the same page, paste the code under **Use a friend's AI** and press **Connect**.
+2. If the card asks, sign in to Tailscale or press **Accept** on your friend's share, then **Check again**.
+3. Their AI is now in your model list as **Borrowed · (their name)**. Pick it and chat as usual.
+
+**What each side sees:** who is connected, direct or relayed, the ping (switch it off if you like), and whose turn it is.
+While your friend is using your AI, your own messages to it wait until they are done (cloud models never wait), and you
+see their usage live. **Force stop** always ends it at once and closes the door.
+
+**Safe by design:** only the AI can be reached, never your files, shell or anything else on your PC. Every friend has their
+own invite, tied to their Tailscale account, which you can remove at any time. Turns end after a quiet moment, and there
+are time limits per turn and per day. Nothing anyone writes is saved; only usage numbers are kept, on your PC.
+
 ## Which stats show up
 
 The bar arranges the stats your DeepSeek Harness already shows: turns and speed, tokens and cache, live speed, the context ring, and any hardware or context stats from other plugins.
@@ -105,3 +142,9 @@ The radio plays public streams listed by [radio-browser.info](https://www.radio-
 ## License
 
 MIT, see [LICENSE](./LICENSE).
+
+## What's new
+
+See [CHANGELOG.md](CHANGELOG.md). Latest: **2.2.0** adds Borrow my AI.
+
+Want to change it? See [docs/DEVELOPING.md](docs/DEVELOPING.md).

@@ -1,0 +1,21 @@
+name: test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+        react: [18, 19]          # DSH uses React 18; 19 checks the next one
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm i --no-save --no-package-lock react@${{ matrix.react }} react-dom@${{ matrix.react }}
+      - run: node build.mjs --check
+      - run: node --check client.js && node --check index.js
+      - run: node test/tasks.test.cjs
+      - run: node test/chaos-page.test.cjs
+      - run: node test/chaos-host.test.mjs

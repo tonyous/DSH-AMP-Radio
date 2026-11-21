@@ -1,6 +1,6 @@
 {
-  "version": "2.0.2",
+  "version": "2.2.0",
   "name": "DSH-AMP-Radio",
-  "description": "AMP Radio plus the AMP Bar: every chat stat in one tidy bar, top or bottom, each one switchable, phone-friendly.",
-  "updated": "2026-11-19"
+  "description": "AMP Radio plus the AMP Bar, now with Borrow my AI: lend your PC's local AI to a friend's DeepSeek Harness over Tailscale, or use theirs.",
+  "updated": "2026-11-22"
 }
